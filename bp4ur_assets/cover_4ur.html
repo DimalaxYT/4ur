@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;500;600;800&display=swap" rel="stylesheet">
+<style>
+  @page { size: 794px 1123px; margin: 0; }
+  :root {
+    --c-bg: #f7f5f1;        /* ivoire — version claire du logo 4UR */
+    --c-text: #1a1a1a;      /* noir profond marque */
+    --c-accent: #1a1a1a;
+    --c-muted: #6e6b67;     /* gris marque */
+  }
+  html, body {
+    margin: 0; padding: 0;
+    width: 794px; height: 1123px;
+    background: var(--c-bg);
+    color: var(--c-text);
+    font-family: 'Montserrat', 'DejaVu Sans', sans-serif;
+  }
+  @media screen {
+    html { height: auto; display: flex; justify-content: center; min-height: 100vh; background: var(--c-bg); }
+    body { transform-origin: top center; scale: min(1, calc(100vw / 794), calc(100vh / 1123)); margin: 0 auto; box-shadow: 0 0 60px rgba(0,0,0,0.12); }
+  }
+  .poster {
+    width: 794px; height: 1123px;
+    position: relative;
+    background: var(--c-bg);
+    border: none; outline: none; box-shadow: none;
+  }
+  /* ── Layer 1 : fond — grille quasi invisible (2%) ───────────── */
+  .bg-layer {
+    position: absolute; inset: 0;
+    overflow: hidden;              /* clip UNIQUEMENT sur Layer 1 */
+    z-index: 1;
+    background-image:
+      repeating-linear-gradient(0deg,   rgba(26,26,26,0.022) 0, rgba(26,26,26,0.022) 0.5px, transparent 0.5px, transparent 50px),
+      repeating-linear-gradient(90deg,  rgba(26,26,26,0.022) 0, rgba(26,26,26,0.022) 0.5px, transparent 0.5px, transparent 50px);
+  }
+  /* ── Layer 2 : structure — ligne d'ancrage verticale ultra-epaisse ── */
+  .structure-layer { position: absolute; inset: 0; z-index: 2; }
+  .anchor-line {
+    position: absolute;
+    left: 95px;                    /* 0.12 x W */
+    top: 112px;                    /* 0.10 x H */
+    bottom: 112px;                 /* jusqu'a 0.90 x H */
+    width: 8px;                    /* 6pt */
+    background: var(--c-accent);
+  }
+  /* ── Layer 3 : contenu ─────────────────────────────────────── */
+  .content-layer { position: absolute; inset: 0; z-index: 3; }
+  .kicker {
+    position: absolute;
+    left: 175px; top: 168px;       /* 0.15 x H — content = ligne + 2U */
+    font-size: 16pt; font-weight: 500;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    color: var(--c-text);
+    opacity: 0.6;
+  }
+  .icon-badge {
+    position: absolute;
+    right: 90px; top: 112px;
+    width: 92px; height: 92px;
+    background: var(--c-accent);
+    border-radius: 22px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .icon-badge span {
+    color: #ffffff; font-size: 22pt; font-weight: 800; letter-spacing: 1px;
+  }
+  .hero {
+    position: absolute;
+    left: 175px; top: 292px;       /* zone B */
+    max-width: 520px;
+  }
+  .hero .wordmark {
+    font-size: 76pt; font-weight: 800;
+    line-height: 1.15;
+    letter-spacing: 2px;
+    color: var(--c-text);
+  }
+  .hero .baseline {
+    margin-top: 18px;
+    font-size: 14pt; font-weight: 600;
+    letter-spacing: 5px;
+    text-transform: uppercase;
+    color: var(--c-text);
+  }
+  .hero .pillars {
+    margin-top: 14px;
+    font-size: 11.5pt; font-weight: 500;
+    letter-spacing: 4.5px;
+    text-transform: uppercase;
+    color: var(--c-muted);
+  }
+  .summary {
+    position: absolute;
+    left: 175px; top: 592px;       /* zone C — 0.53 x H */
+    max-width: 476px;              /* 0.6 x W */
+    font-size: 16pt; font-weight: 300;
+    line-height: 1.6;
+    color: var(--c-text);
+    opacity: 0.85;
+  }
+  .meta {
+    position: absolute;
+    left: 175px; top: 866px;       /* zone D */
+    font-size: 18pt; font-weight: 500;
+    line-height: 1.5;
+    color: var(--c-text);
+  }
+  .meta .edition {
+    font-size: 14pt; font-weight: 300;
+    color: var(--c-muted);
+    margin-top: 8px;
+  }
+  .footer {
+    position: absolute;
+    left: 175px; bottom: 58px;
+    font-size: 14pt; font-weight: 500;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--c-text);
+    opacity: 0.6;
+  }
+</style>
+</head>
+<body>
+  <div class="poster">
+    <div class="bg-layer"></div>
+    <div class="structure-layer">
+      <div class="anchor-line"></div>
+    </div>
+    <div class="content-layer">
+      <div class="kicker">Business Plan 2026 — 2028</div>
+      <div class="icon-badge"><span>4UR</span></div>
+      <div class="hero">
+        <div class="wordmark">4UR</div>
+        <div class="baseline">For Your Digital World.</div>
+        <div class="pillars">Web&nbsp;&nbsp;&middot;&nbsp;&nbsp;Software&nbsp;&nbsp;&middot;&nbsp;&nbsp;Security</div>
+      </div>
+      <div class="summary">
+        Cr&eacute;ation de sites web, chatbots intelligents et cybers&eacute;curit&eacute;
+        int&eacute;gr&eacute;e d&egrave;s la conception&nbsp;: 4UR accompagne les TPE, PME
+        et startups avec un partenaire unique pour construire, automatiser
+        et prot&eacute;ger leur pr&eacute;sence en ligne.
+      </div>
+      <div class="meta">
+        Document strat&eacute;gique de cr&eacute;ation d&rsquo;entreprise
+        <div class="edition">&Eacute;dition &mdash; Octobre 2026</div>
+      </div>
+      <div class="footer">4UR &mdash; For Your Digital World.</div>
+    </div>
+  </div>
+</body>
+</html>

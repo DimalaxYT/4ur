@@ -1,0 +1,28 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// Contenu éditable du site (menu dev caché) — store clé → JSON
+model SiteContent {
+  key       String   @id
+  value     String // JSON sérialisé
+  updatedAt DateTime @updatedAt
+}
+
+// Demandes de contact envoyées depuis le site 4ur
+model ContactRequest {
+  id        String   @id @default(cuid())
+  name      String
+  email     String
+  company   String?
+  subject   String // "web" | "security" | "both"
+  budget    String? // tranche de budget optionnelle
+  message   String
+  source    String   @default("website")
+  createdAt DateTime @default(now())
+}
