@@ -2,27 +2,31 @@
 # Déploiement Render — offre SANS disque persistant
 #
 # Conséquence assumée : la base SQLite est recréée à chaque démarrage
-# ("/tmp" est effacé à chaque redémarrage / redéploiement).
+# ("/tmp" est vidé à chaque redémarrage / redéploiement).
 #   -> Les prix modifiés depuis le panneau dev repartent des valeurs par défaut.
 #   -> Les demandes de contact ne survivent pas non plus : la notification
 #      e-mail / webhook est donc OBLIGATOIRE (sinon vous perdez les leads).
 # Le contenu durable se gère dans le code (src/lib/content-defaults.ts) ou via
 # l'export/import JSON du panneau dev.
 #
+# La commande de démarrage définit DATABASE_URL avec une valeur de repli
+# (`${DATABASE_URL:-...}`) : le service démarre même si la variable n'a pas
+# été saisie dans le tableau de bord.
+#
 # Pour une persistance réelle sans disque Render, voir README → « Postgres
-# externe ». Pour un disque : passez `plan` en offre payante, ajoutez une section
-# `disks:` et pointez DATABASE_URL dessus.
+# externe ». Pour un disque : passez `plan` en offre payante, ajoutez une
+# section `disks:` et pointez DATABASE_URL dessus.
 # ---------------------------------------------------------------------------
 services:
   - type: web
     name: 4ur
-    runtime: node
+    runtime: bun # Render utilise bun par défaut ; avec npm, voir README
     region: frankfurt # le plus proche de la France
     plan: free
     healthCheckPath: /
     # La branche par défaut du dépôt est utilisée ; ajoutez `branch: <nom>` si besoin.
-    buildCommand: npm install && npx prisma generate && npm run build
-    startCommand: mkdir -p /tmp/4ur-db && npx prisma db push --accept-data-loss && npx next start -p $PORT
+    buildCommand: bun install && bun run db:generate && bun run build
+    startCommand: mkdir -p /tmp/4ur-db && export DATABASE_URL="${DATABASE_URL:-file:/tmp/4ur-db/custom.db}" && bun run db:push && bunx next start -H 0.0.0.0 -p $PORT
     envVars:
       # --- Techniques (valeurs connues) ---
       - key: NODE_ENV
