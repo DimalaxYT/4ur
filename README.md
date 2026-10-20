@@ -56,11 +56,37 @@ secrètes sont marquées `sync: false` : Render vous les demande au moment du
 déploiement.
 
 ```bash
-# Build
-npm install && npx prisma generate && npm run build
+# Build (bun, le runtime par défaut de Render)
+bun install && bun run db:generate && bun run build
+
 # Start
-mkdir -p /tmp/4ur-db && npx prisma db push --accept-data-loss && npx next start -p $PORT
+mkdir -p /tmp/4ur-db && export DATABASE_URL="${DATABASE_URL:-file:/tmp/4ur-db/custom.db}" && bun run db:push && bunx next start -H 0.0.0.0 -p $PORT
 ```
+
+En Node/npm :
+
+```bash
+npm install && npx prisma generate && npm run build
+mkdir -p /tmp/4ur-db && export DATABASE_URL="${DATABASE_URL:-file:/tmp/4ur-db/custom.db}" && npx prisma db push --accept-data-loss && npx next start -H 0.0.0.0 -p $PORT
+```
+
+Deux garde-fous sont intégrés :
+
+- `postinstall: prisma generate` dans `package.json` : le client Prisma est
+  régénéré après **n'importe quel** `bun install` / `npm install`, même si la
+  commande de build ne l'invoque pas explicitement.
+- `DATABASE_URL="${DATABASE_URL:-…}"` dans la commande de démarrage : si la
+  variable n'a pas été saisie dans le tableau de bord, on retombe sur
+  `/tmp/4ur-db/custom.db` au lieu de planter au démarrage.
+
+### Dépannage déploiement
+
+| Erreur | Cause | Correctif |
+|---|---|---|
+| `Module '"@prisma/client"' has no exported member 'PrismaClient'` | le client Prisma n'a pas été généré avant `next build` | `bun run db:generate` dans le build (ou laisser jouer le `postinstall`) |
+| `Environment variable not found: DATABASE_URL` (P1012) | variable absente au démarrage | ajouter `DATABASE_URL` dans l'onglet Environment, ou laisser le repli de la commande de démarrage |
+| `No open ports detected` | le serveur n'écoute pas sur l'IP publique | `-H 0.0.0.0 -p $PORT` (déjà dans les commandes ci-dessus) |
+| `Query engine library … could not be found` | moteur Prisma absent du bundle standalone | utiliser `next start` et non `bun run start` / `server.js` |
 
 ### Ce qui est perdu, ce qui ne l'est pas
 
