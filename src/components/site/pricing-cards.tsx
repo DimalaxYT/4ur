@@ -2,7 +2,7 @@ import Link from "next/link";
 import { ArrowUpRight, Check, ShieldCheck } from "lucide-react";
 import { Reveal } from "./reveal";
 import { TiltCard } from "./tilt-card";
-import { DEFAULT_PLANS, type Plan } from "@/lib/content";
+import { DEFAULT_PLANS, type Plan } from "@/lib/content-defaults";
 
 export type { Plan };
 

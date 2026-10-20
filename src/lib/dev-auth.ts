@@ -1,18 +1,25 @@
 import { createHash, createHmac, timingSafeEqual } from "crypto";
+import "server-only";
 
 /**
  * Auth du menu « dev » caché.
- * - PIN défini dans .env (DEV_PANEL_PIN), fallback 4urdev pour le dev local.
+ * - PIN défini dans .env (DEV_PANEL_PIN). Aucun repli en dur : sans variable
+ *   d'environnement, le panneau reste fermé (message explicite dans les logs).
  * - Session : cookie httpOnly signé HMAC (12 h), aucune donnée sensible dedans.
- * - Rate limit mémoire sur les tentatives de PIN (5 / 15 min par IP).
+ * - Rate limit via `@/lib/rate-limit` : par IP (si proxy de confiance) + plafond
+ *   global, avec délai progressif à chaque échec.
  */
 
-const PIN = process.env.DEV_PANEL_PIN ?? "4urdev";
-const SECRET =
-  process.env.DEV_PANEL_SECRET ?? `4ur-dev-panel::${PIN}::sel-statique-local`;
+const PIN = process.env.DEV_PANEL_PIN ?? "";
+const SECRET = process.env.DEV_PANEL_SECRET ?? "";
 
 export const DEV_COOKIE = "4ur_dev_session";
 export const SESSION_TTL_MS = 12 * 60 * 60 * 1000; // 12 h
+
+/** Le panneau est-il configuré (PIN + secret présents) ? */
+export function isDevPanelConfigured(): boolean {
+  return PIN.length > 0 && SECRET.length > 0;
+}
 
 /** Hash SHA-256 (comparaison en timing-safe, longueurs égales garanties). */
 function sha256(input: string): Buffer {
@@ -21,6 +28,7 @@ function sha256(input: string): Buffer {
 
 /** Le PIN saisi correspond-il au PIN attendu ? */
 export function verifyPin(candidate: string): boolean {
+  if (!isDevPanelConfigured()) return false;
   return timingSafeEqual(sha256(candidate), sha256(PIN));
 }
 
@@ -33,7 +41,7 @@ export function createSessionToken(): string {
 
 /** Vérifie le token de session (signature + expiration). */
 export function verifySessionToken(token: string | undefined): boolean {
-  if (!token) return false;
+  if (!token || !isDevPanelConfigured()) return false;
   const dot = token.indexOf(".");
   if (dot <= 0) return false;
   const exp = token.slice(0, dot);
@@ -56,26 +64,12 @@ export function isAuthorized(request: Request): boolean {
   return verifySessionToken(decodeURIComponent(match.slice(DEV_COOKIE.length + 1)));
 }
 
-/* ------------------- Rate limit des tentatives PIN ------------------ */
-
-const pinAttempts = new Map<string, { count: number; reset: number }>();
-const PIN_WINDOW_MS = 15 * 60 * 1000;
-const PIN_MAX_ATTEMPTS = 5;
-
-export function pinRateLimited(ip: string): boolean {
-  const now = Date.now();
-  const entry = pinAttempts.get(ip);
-  if (!entry || entry.reset < now) {
-    pinAttempts.set(ip, { count: 1, reset: now + PIN_WINDOW_MS });
-    return false;
-  }
-  entry.count += 1;
-  return entry.count > PIN_MAX_ATTEMPTS;
-}
-
-export function pinAttemptsRemaining(ip: string): number {
-  const now = Date.now();
-  const entry = pinAttempts.get(ip);
-  if (!entry || entry.reset < now) return PIN_MAX_ATTEMPTS;
-  return Math.max(0, PIN_MAX_ATTEMPTS - entry.count);
+/**
+ * Délai progressif avant de répondre à un PIN erroné : 300 ms × échecs, plafonné
+ * à 3 s. Rend le brute-force inutilisable même sous le plafond global.
+ */
+export function sleepBeforeReject(remaining: number, limit: number): Promise<void> {
+  const failures = Math.max(0, limit - remaining);
+  const ms = Math.min(3_000, failures * 300);
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }

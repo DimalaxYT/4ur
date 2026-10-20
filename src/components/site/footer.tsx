@@ -10,6 +10,11 @@ const NAV = [
   { href: "/contact", label: "Contact" },
 ];
 
+const LEGAL_LINKS = [
+  { href: "/mentions-legales", label: "Mentions légales" },
+  { href: "/confidentialite", label: "Confidentialité" },
+];
+
 export function Footer() {
   return (
     <footer className="mt-auto border-t border-white/10 bg-[#050505] pb-20 lg:pb-0">
@@ -56,8 +61,17 @@ export function Footer() {
           <p className="order-first font-mono text-[11px] uppercase tracking-[0.34em] text-foreground sm:order-none">
             — for your digital world —
           </p>
-          <p className="font-mono text-[10px] uppercase tracking-[0.28em] text-muted-foreground/70">
-            web · security
+          <p className="flex flex-wrap items-center gap-x-5 gap-y-2 font-mono text-[10px] uppercase tracking-[0.28em] text-muted-foreground/70">
+            <span>web · security</span>
+            {LEGAL_LINKS.map((l) => (
+              <Link
+                key={l.href}
+                href={l.href}
+                className="transition-colors hover:text-foreground"
+              >
+                {l.label}
+              </Link>
+            ))}
           </p>
         </div>
       </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { Loader2, Send } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -38,6 +39,7 @@ export function ContactForm() {
   const [pending, setPending] = useState(false);
   const [subject, setSubject] = useState<string>("");
   const [budget, setBudget] = useState<string>("unknown");
+  const [consent, setConsent] = useState(false);
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -57,6 +59,8 @@ export function ContactForm() {
           subject: subject || "both",
           budget,
           message: fd.get("message"),
+          consent,
+          website: fd.get("website"),
         }),
       });
       const data = (await res.json()) as { ok?: boolean; error?: string };
@@ -72,6 +76,7 @@ export function ContactForm() {
       form.reset();
       setSubject("");
       setBudget("unknown");
+      setConsent(false);
     } catch (err) {
       toast({
         variant: "destructive",
@@ -174,6 +179,42 @@ export function ContactForm() {
             placeholder="Décrivez votre besoin : activité, objectifs, délais, ce que vous avez déjà…"
             className="resize-none"
           />
+        </div>
+
+        {/* Pot de miel anti-bot : invisible pour l'utilisateur, irrésistible pour un script */}
+        <input
+          type="text"
+          name="website"
+          tabIndex={-1}
+          autoComplete="off"
+          aria-hidden="true"
+          defaultValue=""
+          className="absolute -left-[9999px] h-0 w-0 opacity-0"
+        />
+
+        <div className="mt-6 flex items-start gap-3">
+          <input
+            type="checkbox"
+            id="consent"
+            name="consent"
+            required
+            checked={consent}
+            onChange={(e) => setConsent(e.target.checked)}
+            className="mt-0.5 size-4 shrink-0 accent-primary"
+          />
+          <label
+            htmlFor="consent"
+            className="text-[13px] leading-relaxed text-muted-foreground"
+          >
+            J&apos;accepte que les informations transmises soient utilisées pour
+            répondre à ma demande.{" "}
+            <Link
+              href="/confidentialite"
+              className="text-foreground underline underline-offset-4 hover:opacity-80"
+            >
+              Politique de confidentialité
+            </Link>
+          </label>
         </div>
 
         <button

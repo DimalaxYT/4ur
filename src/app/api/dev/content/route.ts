@@ -1,46 +1,15 @@
 import { NextResponse } from "next/server";
-import { z } from "zod";
+import { BUNDLE_HINT, bundleSchema } from "@/lib/content-schema";
 import { getContentBundle, saveContentBundle } from "@/lib/content";
 import { isAuthorized } from "@/lib/dev-auth";
+import { checkLimit } from "@/lib/rate-limit";
+
+export const runtime = "nodejs";
 
 /**
  * GET /api/dev/content — bundle actuel (session requise).
  * PUT /api/dev/content — sauvegarde le bundle (session requise).
  */
-
-const serviceCard = z.object({
-  name: z.string().trim().min(1).max(80),
-  price: z.string().trim().min(1).max(40),
-  body: z.string().trim().max(500),
-});
-
-const bundleSchema = z.object({
-  plans: z
-    .array(
-      z.object({
-        name: z.string().trim().min(1).max(60),
-        price: z.string().trim().min(1).max(40),
-        detail: z.string().trim().min(1).max(120),
-        pitch: z.string().trim().min(1).max(160),
-        features: z.array(z.string().trim().min(1).max(140)).min(1).max(12),
-        cta: z.string().trim().min(1).max(60),
-        popular: z.boolean(),
-      })
-    )
-    .length(3),
-  securityOffers: z
-    .array(
-      z.object({
-        name: z.string().trim().min(1).max(60),
-        price: z.string().trim().min(1).max(40),
-        pitch: z.string().trim().min(1).max(160),
-        features: z.array(z.string().trim().min(1).max(140)).min(1).max(12),
-      })
-    )
-    .length(3),
-  webOptions: z.array(serviceCard).length(3),
-  recurring: z.array(serviceCard).length(3),
-});
 
 /** Vérifie la session ; renvoie une réponse 401 si non autorisé, sinon null. */
 function guard(request: Request): NextResponse | null {
@@ -51,6 +20,15 @@ function guard(request: Request): NextResponse | null {
 export async function GET(request: Request) {
   const denied = guard(request);
   if (denied) return denied;
+
+  const limit = checkLimit(request, "dev-content");
+  if (!limit.ok) {
+    return NextResponse.json(
+      { ok: false, error: "Trop de requêtes." },
+      { status: 429, headers: { "Retry-After": String(limit.retryAfterSec) } }
+    );
+  }
+
   const bundle = await getContentBundle();
   return NextResponse.json({ ok: true, bundle });
 }
@@ -59,18 +37,19 @@ export async function PUT(request: Request) {
   const denied = guard(request);
   if (denied) return denied;
 
+  const limit = checkLimit(request, "dev-content");
+  if (!limit.ok) {
+    return NextResponse.json(
+      { ok: false, error: "Trop de requêtes." },
+      { status: 429, headers: { "Retry-After": String(limit.retryAfterSec) } }
+    );
+  }
+
   try {
     const body = await request.json();
     const parsed = bundleSchema.safeParse(body);
     if (!parsed.success) {
-      return NextResponse.json(
-        {
-          ok: false,
-          error:
-            "Contenu invalide : 3 items par section, champs remplis (40 caractères max sur les prix).",
-        },
-        { status: 400 }
-      );
+      return NextResponse.json({ ok: false, error: BUNDLE_HINT }, { status: 400 });
     }
     await saveContentBundle(parsed.data);
     return NextResponse.json({ ok: true });
@@ -82,5 +61,3 @@ export async function PUT(request: Request) {
     );
   }
 }
-
-export const runtime = "nodejs";
