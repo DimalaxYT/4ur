@@ -11,7 +11,18 @@ import {
 } from "react";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
-import { Lock, LogOut, RefreshCw, RotateCcw, Save, Terminal, Trash2, X } from "lucide-react";
+import {
+  Download,
+  Lock,
+  LogOut,
+  RefreshCw,
+  RotateCcw,
+  Save,
+  Terminal,
+  Trash2,
+  Upload,
+  X,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { DEFAULT_BUNDLE, type ContentBundle } from "@/lib/content-defaults";
@@ -60,6 +71,62 @@ function formatDate(iso: string): string {
     hour: "2-digit",
     minute: "2-digit",
   });
+}
+
+/* --------------------------- Import / export --------------------------- */
+
+const isStringArray = (v: unknown): v is string[] =>
+  Array.isArray(v) && v.every((x) => typeof x === "string");
+
+const isServiceCardArray = (v: unknown): boolean =>
+  Array.isArray(v) &&
+  v.length === 3 &&
+  v.every(
+    (c) =>
+      !!c &&
+      typeof c.name === "string" &&
+      typeof c.price === "string" &&
+      typeof c.body === "string"
+  );
+
+/**
+ * Validation locale d'un fichier importé — recopiée ici plutôt qu'importée de
+ * `content-schema.ts` pour ne pas embarquer Zod dans le bundle navigateur.
+ */
+function isValidBundle(value: unknown): value is ContentBundle {
+  if (!value || typeof value !== "object") return false;
+  const b = value as Record<string, unknown>;
+
+  const plansOk =
+    Array.isArray(b.plans) &&
+    b.plans.length === 3 &&
+    b.plans.every(
+      (p) =>
+        !!p &&
+        typeof p.name === "string" &&
+        typeof p.price === "string" &&
+        typeof p.detail === "string" &&
+        typeof p.pitch === "string" &&
+        typeof p.cta === "string" &&
+        typeof p.popular === "boolean" &&
+        isStringArray(p.features)
+    );
+
+  const offersOk =
+    Array.isArray(b.securityOffers) &&
+    b.securityOffers.length === 3 &&
+    b.securityOffers.every(
+      (o) =>
+        !!o &&
+        typeof o.name === "string" &&
+        typeof o.price === "string" &&
+        typeof o.pitch === "string" &&
+        isStringArray(o.features)
+    );
+
+  return Boolean(
+    plansOk && offersOk && isServiceCardArray(b.webOptions) && isServiceCardArray(b.recurring)
+  );
 }
 
 interface DevPanelContextValue {
@@ -408,6 +475,7 @@ export function DevPanelProvider({ children }: { children: React.ReactNode }) {
   const [busy, setBusy] = useState(false);
   const [leads, setLeads] = useState<Lead[] | null>(null);
   const [leadsError, setLeadsError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   /* Chargements : déclenchés depuis des gestionnaires d'évènement (ouverture,
      changement d'onglet) et non depuis un effet, pour éviter les rendus en cascade. */
@@ -594,6 +662,54 @@ export function DevPanelProvider({ children }: { children: React.ReactNode }) {
     });
   }, [toast]);
 
+  /** Télécharge le bundle courant en JSON (sauvegarde / transfert). */
+  const exportBundle = useCallback(() => {
+    if (!bundle) return;
+    const blob = new Blob([JSON.stringify(bundle, null, 2)], {
+      type: "application/json",
+    });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `4ur-contenu-${new Date().toISOString().slice(0, 10)}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+    toast({
+      title: "Contenu exporté",
+      description: "Fichier JSON téléchargé — conservez-le, il sert de sauvegarde.",
+    });
+  }, [bundle, toast]);
+
+  /** Recharge un bundle depuis un fichier JSON exporté. */
+  const importBundle = useCallback(
+    async (file: File) => {
+      try {
+        const parsed: unknown = JSON.parse(await file.text());
+        if (!isValidBundle(parsed)) {
+          toast({
+            title: "Fichier invalide",
+            description:
+              "Le JSON ne correspond pas à la structure attendue (4 sections, 3 items chacune).",
+            variant: "destructive",
+          });
+          return;
+        }
+        setBundle(parsed);
+        toast({
+          title: "Contenu importé",
+          description: "Pensez à enregistrer pour le publier.",
+        });
+      } catch {
+        toast({
+          title: "Import impossible",
+          description: "Fichier JSON illisible.",
+          variant: "destructive",
+        });
+      }
+    },
+    [toast]
+  );
+
   const ctx = useMemo(() => ({ open }), [open]);
 
   /* Helpers de mise à jour immuable */
@@ -652,6 +768,36 @@ export function DevPanelProvider({ children }: { children: React.ReactNode }) {
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="application/json,.json"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) void importBundle(file);
+                      e.target.value = "";
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    title="Importer un fichier JSON"
+                    className="inline-flex h-9 items-center gap-2 rounded-md border border-white/10 px-3 font-mono text-[11px] uppercase tracking-[0.14em] text-muted-foreground transition-colors hover:bg-white/5 hover:text-foreground"
+                  >
+                    <Upload className="size-3.5" />
+                    <span className="hidden sm:inline">Importer</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={exportBundle}
+                    disabled={!bundle}
+                    title="Télécharger le contenu en JSON"
+                    className="inline-flex h-9 items-center gap-2 rounded-md border border-white/10 px-3 font-mono text-[11px] uppercase tracking-[0.14em] text-muted-foreground transition-colors hover:bg-white/5 hover:text-foreground disabled:opacity-50"
+                  >
+                    <Download className="size-3.5" />
+                    <span className="hidden sm:inline">Exporter</span>
+                  </button>
                   <button
                     type="button"
                     onClick={resetToDefaults}

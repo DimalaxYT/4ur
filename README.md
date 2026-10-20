@@ -48,6 +48,67 @@ Toutes sont documentées dans `.env.example`. Les importantes :
   mais personne n'est prévenu (un avertissement est journalisé).
 - `NEXT_PUBLIC_*` — URL du site et informations légales.
 
+## Déploiement Render (sans disque persistant)
+
+Le fichier `render.yaml` (Blueprint) configure tout : runtime Node, région
+Frankfurt, build, start et la liste des variables d'environnement. Les valeurs
+secrètes sont marquées `sync: false` : Render vous les demande au moment du
+déploiement.
+
+```bash
+# Build
+npm install && npx prisma generate && npm run build
+# Start
+mkdir -p /tmp/4ur-db && npx prisma db push --accept-data-loss && npx next start -p $PORT
+```
+
+### Ce qui est perdu, ce qui ne l'est pas
+
+Sans disque persistant, `/tmp` est vidé à chaque redémarrage ou redéploiement
+(et les instances gratuites s'endorment après 15 min d'inactivité). La base
+SQLite est donc recréée au démarrage :
+
+| Donnée | Durable ? | Comment la rendre durable |
+|---|---|---|
+| **Prix / offres** (table `SiteContent`) | ❌ repart des valeurs par défaut | Modifiez `src/lib/content-defaults.ts` (versionné, c'est la source de vérité) **ou** utilisez *Exporter* / *Importer* dans le panneau dev après un redémarrage |
+| **Demandes de contact** (table `ContactRequest`) | ❌ effacées | Configurez `CONTACT_WEBHOOK_URL` (Slack/Discord/Make) ou `RESEND_API_KEY` + `CONTACT_NOTIFY_EMAIL` : la notification part à l'envoi, avant même l'écriture en base |
+| Pages, textes, design | ✅ dans Git | — |
+| Contenu édité depuis le panneau dev | ⚠️ jusqu'au prochain redémarrage | Bouton *Exporter* → fichier JSON → *Importer* après redémarrage |
+
+Le site ne tombe jamais : si la base est vide ou absente, les pages s'affichent
+avec les valeurs par défaut (`getContentBundle` retombe dessus silencieusement).
+
+### Rendre les prix durables (sans base)
+
+1. Ouvrez le panneau dev, faites vos modifications, *Enregistrer*.
+2. *Exporter* → vous obtenez `4ur-contenu-AAAA-MM-JJ.json`.
+3. Après un redémarrage : *Importer* → sélectionnez ce fichier → *Enregistrer*.
+
+Pour un changement définitif (celui qui survivra à tout), éditez directement
+`src/lib/content-defaults.ts` et redéployez : c'est le code qui fait foi.
+
+### Si vous voulez une vraie persistance sans disque Render
+
+Un Postgres externe gratuit (Neon ou Supabase) règle le problème :
+
+1. Créez la base, copiez la chaîne de connexion.
+2. Dans `prisma/schema.prisma` : `provider = "postgresql"`.
+3. `DATABASE_URL="postgresql://user:pass@host/db?sslmode=require"`.
+4. Build : `npm install && npx prisma generate && npm run build`
+   Start : `npx prisma db push && npx next start -p $PORT`
+
+Le reste du code est inchangé (le schéma n'utilise rien de spécifique à SQLite).
+
+### Variables d'environnement — rappel
+
+Toutes sont listées et commentées dans `.env.example`. Les pièges :
+
+- `TRUST_PROXY=1` **uniquement** derrière un proxy de confiance (c'est le cas
+  sur Render) : sinon les quotas anti-spam sont partagés entre tous les visiteurs.
+- Les `NEXT_PUBLIC_*` sont **figés au build** : après les avoir ajoutées, faites
+  « Clear build cache & deploy ».
+- `NODE_ENV` et `PORT` sont fournis par Render : ne les surchargez pas.
+
 ## Structure
 
 ```

@@ -28,6 +28,8 @@ const SUBJECT_LABELS: Record<string, string> = {
 };
 
 function renderText(lead: LeadNotification): string {
+  const receivedAt =
+    lead.createdAt instanceof Date ? lead.createdAt : new Date(lead.createdAt ?? Date.now());
   const lines = [
     `Nouvelle demande — ${SUBJECT_LABELS[lead.subject] ?? lead.subject}`,
     "",
@@ -35,7 +37,7 @@ function renderText(lead: LeadNotification): string {
     `Email : ${lead.email}`,
     `Entreprise : ${lead.company ?? "—"}`,
     `Budget : ${lead.budget ?? "—"}`,
-    `Reçue le : ${lead.createdAt.toISOString()}`,
+    `Reçue le : ${receivedAt.toISOString()}`,
     "",
     "Message :",
     lead.message,
