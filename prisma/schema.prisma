@@ -24,5 +24,8 @@ model ContactRequest {
   budget    String? // tranche de budget optionnelle
   message   String
   source    String   @default("website")
+  consent   Boolean  @default(false) // accord de traitement (RGPD)
   createdAt DateTime @default(now())
+
+  @@index([createdAt])
 }

@@ -25,7 +25,13 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL ?? "https://4ur.fr").replace(/\/$/, "");
+
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
+  alternates: {
+    canonical: "/",
+  },
   title: {
     default: "4ur — For Your Needs · Sites web & cybersécurité",
     template: "%s · 4ur",

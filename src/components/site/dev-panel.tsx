@@ -11,10 +11,10 @@ import {
 } from "react";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
-import { Lock, RotateCcw, Save, Terminal, X } from "lucide-react";
+import { Lock, LogOut, RefreshCw, RotateCcw, Save, Terminal, Trash2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
-import { DEFAULT_BUNDLE, type ContentBundle } from "@/lib/content";
+import { DEFAULT_BUNDLE, type ContentBundle } from "@/lib/content-defaults";
 
 /**
  * Menu « dev » caché 4ur.
@@ -24,14 +24,43 @@ import { DEFAULT_BUNDLE, type ContentBundle } from "@/lib/content";
  */
 
 type Phase = "closed" | "pin" | "panel";
-type Tab = "plans" | "security" | "options" | "recurring";
+type Tab = "plans" | "security" | "options" | "recurring" | "leads";
 
 const TABS: { id: Tab; label: string }[] = [
   { id: "plans", label: "Formules Web" },
   { id: "security", label: "Offres Sécurité" },
   { id: "options", label: "Options Web" },
   { id: "recurring", label: "Services récurrents" },
+  { id: "leads", label: "Demandes" },
 ];
+
+/** Demande de contact telle que renvoyée par GET /api/dev/requests. */
+interface Lead {
+  id: string;
+  name: string;
+  email: string;
+  company: string | null;
+  subject: string;
+  budget: string | null;
+  message: string;
+  createdAt: string;
+}
+
+const SUBJECT_LABELS: Record<string, string> = {
+  web: "Site web",
+  security: "Cybersécurité",
+  both: "Site + sécurité",
+};
+
+function formatDate(iso: string): string {
+  return new Date(iso).toLocaleString("fr-FR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
 
 interface DevPanelContextValue {
   open: () => void;
@@ -377,6 +406,44 @@ export function DevPanelProvider({ children }: { children: React.ReactNode }) {
   const [pinError, setPinError] = useState<string | null>(null);
   const [pinRemaining, setPinRemaining] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
+  const [leads, setLeads] = useState<Lead[] | null>(null);
+  const [leadsError, setLeadsError] = useState<string | null>(null);
+
+  /* Chargements : déclenchés depuis des gestionnaires d'évènement (ouverture,
+     changement d'onglet) et non depuis un effet, pour éviter les rendus en cascade. */
+  const loadBundle = useCallback(async () => {
+    try {
+      const res = await fetch("/api/dev/content", { cache: "no-store" });
+      if (res.status === 401) {
+        setPhase("pin");
+        return;
+      }
+      const data = (await res.json()) as { ok: boolean; bundle?: ContentBundle };
+      if (data.ok && data.bundle) setBundle(data.bundle);
+    } catch {
+      /* réseau indisponible : le panneau reste ouvert avec le contenu par défaut */
+    }
+  }, []);
+
+  const loadLeads = useCallback(async () => {
+    setLeadsError(null);
+    try {
+      const res = await fetch("/api/dev/requests", { cache: "no-store" });
+      const data = (await res.json()) as {
+        ok: boolean;
+        requests?: Lead[];
+        error?: string;
+      };
+      if (res.status === 401) {
+        setPhase("pin");
+        return;
+      }
+      if (data.ok && data.requests) setLeads(data.requests);
+      else setLeadsError(data.error ?? "Lecture impossible.");
+    } catch {
+      setLeadsError("Erreur réseau.");
+    }
+  }, []);
 
   const open = useCallback(async () => {
     try {
@@ -385,13 +452,14 @@ export function DevPanelProvider({ children }: { children: React.ReactNode }) {
       setPinError(null);
       if (data.ok) {
         setPhase("panel");
+        void loadBundle();
       } else {
         setPhase("pin");
       }
     } catch {
       setPhase("pin");
     }
-  }, []);
+  }, [loadBundle]);
 
   const close = useCallback(() => {
     setPhase("closed");
@@ -432,20 +500,32 @@ export function DevPanelProvider({ children }: { children: React.ReactNode }) {
     };
   }, [phase]);
 
-  const loadBundle = useCallback(async () => {
-    const res = await fetch("/api/dev/content", { cache: "no-store" });
-    if (res.status === 401) {
-      setPhase("pin");
-      return;
-    }
-    const data = (await res.json()) as { ok: boolean; bundle?: ContentBundle };
-    if (data.ok && data.bundle) setBundle(data.bundle);
-  }, []);
+  const deleteLead = useCallback(
+    async (id: string) => {
+      try {
+        const res = await fetch(`/api/dev/requests?id=${encodeURIComponent(id)}`, {
+          method: "DELETE",
+        });
+        if (res.ok) setLeads((prev) => (prev ?? []).filter((l) => l.id !== id));
+      } catch {
+        toast({ title: "Suppression impossible", variant: "destructive" });
+      }
+    },
+    [toast]
+  );
 
-  /* Charge le contenu dès que le panneau s'ouvre */
-  useEffect(() => {
-    if (phase === "panel" && !bundle) void loadBundle();
-  }, [phase, bundle, loadBundle]);
+  /** Ferme la session côté serveur (le cookie signé est invalidé). */
+  const logout = useCallback(async () => {
+    try {
+      await fetch("/api/dev/auth", { method: "DELETE" });
+    } catch {
+      /* réseau indisponible : on ferme quand même le panneau */
+    }
+    setPhase("closed");
+    setBundle(null);
+    setLeads(null);
+    toast({ title: "Session dev fermée" });
+  }, [toast]);
 
   const submitPin = useCallback(
     async (pin: string) => {
@@ -464,6 +544,7 @@ export function DevPanelProvider({ children }: { children: React.ReactNode }) {
         };
         if (data.ok) {
           setPhase("panel");
+          void loadBundle();
           toast({ title: "Session dev ouverte", description: "12 h — bon courage." });
         } else {
           setPinError(data.error ?? "Code incorrect.");
@@ -475,7 +556,7 @@ export function DevPanelProvider({ children }: { children: React.ReactNode }) {
         setBusy(false);
       }
     },
-    [toast]
+    [loadBundle, toast]
   );
 
   const save = useCallback(async () => {
@@ -590,6 +671,15 @@ export function DevPanelProvider({ children }: { children: React.ReactNode }) {
                   </button>
                   <button
                     type="button"
+                    onClick={() => void logout()}
+                    aria-label="Fermer la session dev"
+                    title="Fermer la session dev"
+                    className="inline-flex size-9 items-center justify-center rounded-md border border-white/10 text-muted-foreground transition-colors hover:text-foreground"
+                  >
+                    <LogOut className="size-4" />
+                  </button>
+                  <button
+                    type="button"
                     onClick={close}
                     aria-label="Fermer le menu dev"
                     className="inline-flex size-9 items-center justify-center rounded-md border border-white/10 text-muted-foreground transition-colors hover:text-foreground"
@@ -606,7 +696,10 @@ export function DevPanelProvider({ children }: { children: React.ReactNode }) {
                     <button
                       key={t.id}
                       type="button"
-                      onClick={() => setTab(t.id)}
+                      onClick={() => {
+                        setTab(t.id);
+                        if (t.id === "leads") void loadLeads();
+                      }}
                       className={cn(
                         "relative whitespace-nowrap px-3.5 py-3 font-mono text-[11px] uppercase tracking-[0.16em] transition-colors",
                         tab === t.id
@@ -684,6 +777,80 @@ export function DevPanelProvider({ children }: { children: React.ReactNode }) {
                         onChange={(patch) => patchRecurring(i, patch)}
                       />
                     ))}
+
+                  {tab === "leads" && (
+                    <div className="flex flex-col gap-4">
+                      <div className="flex items-center justify-between gap-3">
+                        <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
+                          {leads ? `${leads.length} demande(s)` : "chargement…"}
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => void loadLeads()}
+                          className="inline-flex h-8 items-center gap-2 rounded-md border border-white/10 px-3 font-mono text-[11px] uppercase tracking-[0.14em] text-muted-foreground transition-colors hover:bg-white/5 hover:text-foreground"
+                        >
+                          <RefreshCw className="size-3.5" />
+                          Actualiser
+                        </button>
+                      </div>
+
+                      {leadsError && (
+                        <p className="rounded-md border border-red-500/30 bg-red-500/5 p-4 font-mono text-[11px] text-red-400">
+                          {leadsError}
+                        </p>
+                      )}
+
+                      {leads?.length === 0 && (
+                        <p className="py-16 text-center font-mono text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
+                          aucune demande pour le moment
+                        </p>
+                      )}
+
+                      {leads?.map((lead) => (
+                        <article
+                          key={lead.id}
+                          className="rounded-lg border border-white/10 bg-card/60 p-5"
+                        >
+                          <div className="flex flex-wrap items-start justify-between gap-3">
+                            <div>
+                              <p className="font-display text-sm font-bold tracking-tight">
+                                {lead.name}
+                                <span className="ml-2 font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+                                  {SUBJECT_LABELS[lead.subject] ?? lead.subject}
+                                </span>
+                              </p>
+                              <p className="mt-1 font-mono text-[11px] text-muted-foreground">
+                                <a
+                                  href={`mailto:${lead.email}`}
+                                  className="underline underline-offset-4 hover:text-foreground"
+                                >
+                                  {lead.email}
+                                </a>
+                                {lead.company ? ` · ${lead.company}` : ""}
+                                {lead.budget ? ` · ${lead.budget}` : ""}
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+                                {formatDate(lead.createdAt)}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => void deleteLead(lead.id)}
+                                aria-label={`Supprimer la demande de ${lead.name}`}
+                                className="inline-flex size-8 items-center justify-center rounded-md border border-white/10 text-muted-foreground transition-colors hover:border-red-500/40 hover:text-red-400"
+                              >
+                                <Trash2 className="size-3.5" />
+                              </button>
+                            </div>
+                          </div>
+                          <p className="mt-3 whitespace-pre-line text-[13px] leading-relaxed text-muted-foreground">
+                            {lead.message}
+                          </p>
+                        </article>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
 

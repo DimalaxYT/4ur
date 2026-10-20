@@ -52,3 +52,22 @@ prompt
 server.log
 # Skills directory
 /skills/
+# Base de données locale (données personnelles — ne jamais committer)
+db/*.db
+db/*.db-journal
+db/*.db-wal
+db/*.db-shm
+
+# Artefacts de travail de l'agent (captures, exports, logs)
+agent-ctx/
+tool-results/
+bp4ur_assets/
+
+# Assets bruts fournis par le client (volumineux)
+upload/
+
+# PID du serveur de dev
+.zscripts/dev.pid
+
+# Le projet est verrouillé avec bun.lock (npm génère aussi le sien en local)
+package-lock.json
