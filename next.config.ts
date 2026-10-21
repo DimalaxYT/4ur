@@ -3,9 +3,9 @@ import type { NextConfig } from "next";
 /**
  * En-têtes de sécurité appliqués à toutes les réponses.
  *
- * La CSP reste volontairement prudente : Next a besoin de `unsafe-inline` pour
- * les scripts et les styles en l'absence de nonce. L'étape suivante (recommandée)
- * est une CSP stricte avec nonce généré en middleware — voir le README.
+ * En production : verrouillage strict (CSP frame-ancestors 'none', X-Frame-Options DENY,
+ * HSTS preload, CORP same-origin).
+ * En développement / prévisualisation : autorise l'intégration en iframe cross-origin.
  */
 const CSP = [
   "default-src 'self'",
@@ -19,26 +19,38 @@ const CSP = [
   "connect-src 'self'",
   "media-src 'none'",
   "worker-src 'self'",
-  "upgrade-insecure-requests",
+  ...(process.env.NODE_ENV === "production" &&
+  process.env.ALLOW_PREVIEW_IFRAME !== "1"
+    ? ["upgrade-insecure-requests"]
+    : []),
 ];
 
-const isProd = process.env.NODE_ENV === "production";
+const isProd =
+  process.env.NODE_ENV === "production" &&
+  process.env.ALLOW_PREVIEW_IFRAME !== "1";
 
 const securityHeaders = [
   { key: "X-Content-Type-Options", value: "nosniff" },
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
   { key: "X-DNS-Prefetch-Control", value: "on" },
-  { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
-  { key: "Cross-Origin-Resource-Policy", value: "same-origin" },
-  { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(), interest-cohort=()" },
+  ...(isProd ? [{ key: "Cross-Origin-Opener-Policy", value: "same-origin" }] : []),
+  { key: "Cross-Origin-Resource-Policy", value: isProd ? "same-origin" : "cross-origin" },
+  {
+    key: "Permissions-Policy",
+    value: "camera=(), microphone=(), geolocation=(), interest-cohort=()",
+  },
   {
     key: "Content-Security-Policy",
-    // En développement on autorise l'intégration en iframe (prévisualisation).
     value: [...CSP, isProd ? "frame-ancestors 'none'" : "frame-ancestors *"].join("; "),
   },
-  { key: "X-Frame-Options", value: isProd ? "DENY" : "SAMEORIGIN" },
   ...(isProd
-    ? [{ key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains; preload" }]
+    ? [
+        { key: "X-Frame-Options", value: "DENY" },
+        {
+          key: "Strict-Transport-Security",
+          value: "max-age=63072000; includeSubDomains; preload",
+        },
+      ]
     : []),
 ];
 
@@ -46,8 +58,10 @@ const nextConfig: NextConfig = {
   output: "standalone",
   reactStrictMode: true,
   poweredByHeader: false,
+  images: {
+    formats: ["image/avif", "image/webp"],
+  },
   typescript: {
-    // Les erreurs de typage doivent casser le build : jamais en production.
     ignoreBuildErrors: false,
   },
   async headers() {

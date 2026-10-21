@@ -11,13 +11,10 @@ interface RevealProps {
 }
 
 /**
- * Apparition douce au scroll — utilisée dans toutes les sections.
- * - Élément dans le viewport ou en dessous : révélation à l'entrée dans le champ.
- * - Élément déjà au-dessus du viewport (saut d'ancre, restauration de scroll) :
- *   l'observer le détecte (`bottom < 0`) et l'affiche immédiatement.
- * Aucune section ne reste invisible, quel que soit le parcours.
+ * Apparition fluide et nerveuse au scroll (accélérée GPU : opacity + translateY).
+ * Détecte aussi immédiatement les éléments déjà au-dessus du viewport.
  */
-export function Reveal({ children, delay = 0, y = 28, className }: RevealProps) {
+export function Reveal({ children, delay = 0, y = 18, className }: RevealProps) {
   const ref = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(false);
 
@@ -28,7 +25,6 @@ export function Reveal({ children, delay = 0, y = 28, className }: RevealProps) 
     const io = new IntersectionObserver(
       (entries) => {
         for (const entry of entries) {
-          // intersecting : entre dans le champ ; bottom < 0 : déjà dépassé (au-dessus)
           if (entry.isIntersecting || entry.boundingClientRect.bottom < 0) {
             setVisible(true);
             io.disconnect();
@@ -36,7 +32,7 @@ export function Reveal({ children, delay = 0, y = 28, className }: RevealProps) 
           }
         }
       },
-      { rootMargin: "-60px 0px -60px 0px" }
+      { rootMargin: "-40px 0px -40px 0px" }
     );
     io.observe(el);
     return () => io.disconnect();
@@ -48,7 +44,7 @@ export function Reveal({ children, delay = 0, y = 28, className }: RevealProps) 
       className={className}
       initial={{ opacity: 0, y }}
       animate={visible ? { opacity: 1, y: 0 } : undefined}
-      transition={{ duration: 0.65, delay, ease: [0.21, 0.47, 0.32, 0.98] }}
+      transition={{ duration: 0.45, delay: delay * 0.7, ease: [0.22, 1, 0.36, 1] }}
     >
       {children}
     </motion.div>

@@ -7,7 +7,7 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Contenu éditable du site (menu dev caché) — store clé → JSON
+// Contenu éditable et paramètres système du site — store clé → JSON
 model SiteContent {
   key       String   @id
   value     String // JSON sérialisé
@@ -26,6 +26,38 @@ model ContactRequest {
   source    String   @default("website")
   consent   Boolean  @default(false) // accord de traitement (RGPD)
   createdAt DateTime @default(now())
+
+  @@index([createdAt])
+}
+
+// Statistiques de visites anonymisées (sans cookie ni stockage d'IP — conforme RGPD)
+model PageView {
+  id          String   @id @default(cuid())
+  path        String
+  referrer    String?
+  device      String   @default("desktop") // "desktop" | "mobile" | "tablet"
+  browser     String   @default("Autre")
+  visitorHash String
+  createdAt   DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([path])
+  @@index([visitorHash])
+}
+
+// Historique des pings de disponibilité et notifications Webhook Discord
+model MonitorPingLog {
+  id           String   @id @default(cuid())
+  targetUrl    String
+  ok           Boolean
+  statusCode   Int?
+  latencyMs    Int
+  trigger      String   @default("scheduled") // "scheduled" | "manual" | "test"
+  webhookSent  Boolean  @default(false)
+  webhookOk    Boolean?
+  webhookError String?
+  errorMessage String?
+  createdAt    DateTime @default(now())
 
   @@index([createdAt])
 }

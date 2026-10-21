@@ -1,5 +1,6 @@
 import "server-only";
 
+import { revalidatePath, revalidateTag, unstable_cache } from "next/cache";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { planSchema, securityOfferSchema, serviceCardSchema } from "@/lib/content-schema";
@@ -18,12 +19,9 @@ import type {
 } from "@/lib/content-defaults";
 
 /**
- * Contenu éditable du site via le menu « dev » caché.
- * Persisté en DB (table SiteContent, clé → JSON) avec fallback
- * sur les valeurs par défaut si rien n'est stocké — ou si la lecture échoue.
- *
- * ⚠️ Serveur uniquement (Prisma). Les valeurs par défaut et les types vivent
- * dans `@/lib/content-defaults`, importable côté client.
+ * Contenu éditable du site via le Dashboard.
+ * Mis en cache mémoire Next.js (`unstable_cache`) pour un rendu instantané (< 1 ms)
+ * et invalidé immédiatement à chaque sauvegarde (`revalidateTag` + `revalidatePath`).
  */
 
 export type { ContentBundle, Plan, SecurityOffer, ServiceCard };
@@ -35,11 +33,6 @@ export {
   DEFAULT_WEB_OPTIONS,
 };
 
-/* ------------------------------------------------------------------ */
-/*  Lecture / écriture                                                 */
-/* ------------------------------------------------------------------ */
-
-/** Clés de section stockées en DB. */
 const KEYS = {
   plans: "plans",
   securityOffers: "security_offers",
@@ -47,7 +40,6 @@ const KEYS = {
   recurring: "recurring",
 } as const;
 
-/** Lit une section : JSON stocké → validé par le schéma → sinon valeur par défaut. */
 function readSection<S extends z.ZodTypeAny>(
   byKey: Map<string, string>,
   key: string,
@@ -64,8 +56,7 @@ function readSection<S extends z.ZodTypeAny>(
   }
 }
 
-/** Lit le bundle depuis la DB — fallback silencieux sur les défauts. */
-export async function getContentBundle(): Promise<ContentBundle> {
+async function readContentBundleUncached(): Promise<ContentBundle> {
   try {
     const rows = await db.siteContent.findMany({
       where: { key: { in: Object.values(KEYS) } },
@@ -100,7 +91,23 @@ export async function getContentBundle(): Promise<ContentBundle> {
   }
 }
 
-/** Sauvegarde le bundle complet (upsert par clé, en une transaction). */
+const getCachedBundle = unstable_cache(
+  readContentBundleUncached,
+  ["site-content-bundle"],
+  { tags: ["site-content"], revalidate: 300 }
+);
+
+/** Lecture rapide mise en cache pour les pages publiques. */
+export async function getContentBundle(): Promise<ContentBundle> {
+  return getCachedBundle();
+}
+
+/** Lecture directe non cachée pour l'éditeur du Dashboard. */
+export async function getContentBundleFresh(): Promise<ContentBundle> {
+  return readContentBundleUncached();
+}
+
+/** Sauvegarde le bundle complet et invalide instantanément le cache des pages publiques. */
 export async function saveContentBundle(bundle: ContentBundle): Promise<void> {
   const entries: [string, unknown][] = [
     [KEYS.plans, bundle.plans],
@@ -118,4 +125,9 @@ export async function saveContentBundle(bundle: ContentBundle): Promise<void> {
       })
     )
   );
+
+  revalidateTag("site-content", { expire: 0 });
+  revalidatePath("/web");
+  revalidatePath("/security");
+  revalidatePath("/tarifs");
 }

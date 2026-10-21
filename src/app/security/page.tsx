@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import {
+  Check,
   DatabaseBackup,
   FileCheck2,
   Fingerprint,
@@ -10,11 +11,9 @@ import {
 import { PageHeader } from "@/components/site/page-header";
 import { CtaBanner } from "@/components/site/cta-banner";
 import { Reveal } from "@/components/site/reveal";
-import { TiltCard } from "@/components/site/tilt-card";
-import { Watermark } from "@/components/site/parallax";
+import { SpotlightCard } from "@/components/site/spotlight-card";
+import { ActionButton } from "@/components/site/action-button";
 import { getContentBundle } from "@/lib/content";
-
-export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Pôle Sécurité — audit, monitoring & protection",
@@ -25,49 +24,49 @@ export const metadata: Metadata = {
 const STATS = [
   { value: "48 %", label: "des victimes de ransomware en France sont des PME & ETI" },
   { value: "330 k€", label: "coût moyen d'une cyberattaque réussie pour une PME" },
-  { value: "90 %", label: "des intrusions commencent par un simple clic sur un mail de phishing" },
+  { value: "72 h", label: "délai maximal de remise d'un audit complet avec plan d'action" },
 ];
 
 const SERVICES = [
   {
     icon: Fingerprint,
     title: "Audit & pentest",
-    body: "Nous attaquons votre site avant les attaquants : failles connues, injections, mauvaises configurations, mots de passe faibles. Vous recevez un rapport clair, priorisé par criticité, avec un plan d'action chiffré.",
+    body: "Nous éprouvons votre site avant les attaquants : failles connues, injections, mauvaises configurations. Vous recevez un rapport clair et priorisé.",
   },
   {
     icon: ServerCog,
-    title: "Sécurisation de l'existant",
-    body: "Votre site actuel n'a pas été pensé sécurisé ? Nous durcissons les headers HTTP, corrigeons les dépendances, verrouillons les accès admin et nettoyons les injections — sans reconstruire tout de zéro.",
+    title: "Durcissement de l'existant",
+    body: "Nous configurons les en-têtes HTTP, corrigeons les dépendances vulnérables et verrouillons les surfaces sensibles sans refonte forcée.",
   },
   {
     icon: Radar,
-    title: "Monitoring 24/7",
-    body: "Surveillance continue de votre site : indisponibilité, injection suspecte, comportement anormal, expiration de certificat. Vous êtes prévenu avant vos clients, avec un plan d'action déjà rédigé.",
+    title: "Supervision active 24/7",
+    body: "Surveillance continue de disponibilité, latence, intégrité TLS et anomalies applicatives avec alertes temps réel.",
   },
   {
     icon: DatabaseBackup,
-    title: "Sauvegardes & continuité",
-    body: "Sauvegardes chiffrées, automatiques et testées régulièrement — parce qu'une sauvegarde jamais restaurée est une illusion. Le jour où quelque chose casse, vous repartez en quelques heures.",
+    title: "Sauvegardes chiffrées",
+    body: "Sauvegardes externalisées, chiffrées et régulièrement restaurées à blanc pour garantir une reprise rapide en toute circonstance.",
   },
   {
     icon: GraduationCap,
     title: "Sensibilisation des équipes",
-    body: "90 % des intrusions commencent par un clic. Nous formons vos collaborateurs au phishing, aux mots de passe et aux bons réflexes, en ateliers courts et concrets, sans jargon ni culpabilisation.",
+    body: "Ateliers concrets et bienveillants contre l'ingénierie sociale, le phishing et la compromission d'identifiants.",
   },
   {
     icon: FileCheck2,
     title: "Conformité & RGPD",
-    body: "Cookies, consentement, données personnelles, mentions légales, registre des traitements : nous mettons votre site en règle et documentons tout, pour dormir sur ses deux oreilles.",
+    body: "Minimisation des traceurs, mentions légales, registre des traitements et sécurité des formulaires documentés proprement.",
   },
 ];
 
 const TERMINAL_LINES = [
-  { status: "ok", text: "headers de sécurité", value: "CSP · HSTS · X-Frame" },
-  { status: "ok", text: "certificat SSL/TLS", value: "note A+" },
-  { status: "ok", text: "sauvegardes automatiques", value: "quotidiennes · chiffrées" },
-  { status: "warn", text: "dépendances obsolètes", value: "2 mises à jour requises" },
-  { status: "ok", text: "protection anti-spam", value: "active" },
-  { status: "ok", text: "conformité RGPD", value: "bannière + registre" },
+  { status: "ok", text: "en-têtes cryptographiques", value: "CSP · HSTS · Permissions" },
+  { status: "ok", text: "protocole TLS 1.3", value: "note A+ vérifiée" },
+  { status: "ok", text: "sauvegardes externalisées", value: "quotidiennes · chiffrées" },
+  { status: "warn", text: "dépendances npm / composer", value: "analyse pré-déploiement" },
+  { status: "ok", text: "filtrage anti-bot & rate-limit", value: "actif en périphérie" },
+  { status: "ok", text: "analytics sans cookie", value: "conforme RGPD" },
 ];
 
 export default async function SecurityPage() {
@@ -76,19 +75,22 @@ export default async function SecurityPage() {
   return (
     <>
       <PageHeader
-        overline="Pôle sécurité — 4ur security"
+        overline="Pôle Sécurité · 4ur Security"
         title="La cybersécurité,"
         titleMuted="sans le jargon."
-        intro="Vous n'avez pas besoin de devenir un expert en sécurité. Vous avez besoin qu'un expert s'en occupe. Nous protégeons votre site, vos données et votre réputation — et nous vous expliquons tout, en français clair."
-        watermark="SECUR"
+        intro="Nous protégeons votre site, vos données et votre réputation avec une ingénierie rigoureuse — expliquée clairement et livrée sans friction."
+        watermark="CYBER"
       />
 
-      {/* Chiffres */}
-      <section className="border-b border-white/10">
-        <div className="mx-auto grid max-w-6xl grid-cols-1 divide-y divide-white/10 px-5 sm:grid-cols-3 sm:divide-x sm:divide-y-0 sm:px-8">
+      {/* Indicateurs clés */}
+      <section className="border-b border-white/[0.08]">
+        <div className="mx-auto grid max-w-6xl grid-cols-1 divide-y divide-white/[0.08] px-5 sm:grid-cols-3 sm:divide-x sm:divide-y-0 sm:px-8">
           {STATS.map((s) => (
-            <div key={s.value} className="flex items-baseline gap-3 py-6 sm:flex-col sm:gap-1 sm:py-8">
-              <span className="font-display text-2xl font-extrabold tracking-tight sm:text-3xl">
+            <div
+              key={s.value}
+              className="flex items-baseline gap-3 py-7 sm:flex-col sm:gap-1.5 sm:px-6 sm:py-9 first:sm:pl-0"
+            >
+              <span className="text-platinum font-display text-2xl font-extrabold tracking-tight sm:text-3xl">
                 {s.value}
               </span>
               <span className="max-w-[30ch] text-xs leading-relaxed text-muted-foreground">
@@ -97,173 +99,170 @@ export default async function SecurityPage() {
             </div>
           ))}
         </div>
-        <p className="border-t border-white/10 py-3 text-center font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground/60">
-          sources : ANSSI · Verizon DBIR — 2025
-        </p>
       </section>
 
       {/* Services */}
-      <section className="relative border-b border-white/10 py-24 sm:py-32">
-        <Watermark text="PROTEGER" from={60} to={-60} />
+      <section className="section-beam relative border-b border-white/[0.08] py-24 sm:py-32">
         <div className="relative mx-auto max-w-6xl px-5 sm:px-8">
           <Reveal>
-            <h2 className="max-w-2xl text-balance font-display text-2xl font-extrabold leading-tight tracking-tight sm:text-4xl">
-              Six façons de vous rendre{" "}
-              <span className="text-muted-foreground">invivable pour les attaquants.</span>
-            </h2>
+            <div className="flex flex-col items-start justify-between gap-6 sm:flex-row sm:items-end">
+              <h2 className="max-w-2xl text-balance font-display text-2xl font-extrabold leading-tight tracking-[-0.03em] sm:text-4xl">
+                Six couches de défense{" "}
+                <span className="text-white/42">complémentaires.</span>
+              </h2>
+              <ActionButton
+                href="/lab"
+                variant="secondary"
+                size="md"
+                icon="arrow-right"
+              >
+                Tester dans le Lab
+              </ActionButton>
+            </div>
           </Reveal>
           <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {SERVICES.map((s, i) => (
-              <Reveal key={s.title} delay={(i % 3) * 0.1} className="h-full">
-                <TiltCard intensity={5} className="h-full">
-                  <article className="group h-full rounded-lg border border-white/10 bg-card p-6 transition-colors hover:border-white/25">
-                    <s.icon
-                      className="size-6 text-foreground transition-transform duration-300 group-hover:-translate-y-1"
-                      strokeWidth={1.5}
-                      aria-hidden="true"
-                    />
-                    <h3 className="mt-5 font-display text-base font-bold tracking-tight">
-                      {s.title}
-                    </h3>
-                    <p className="mt-2.5 text-sm leading-relaxed text-muted-foreground">
-                      {s.body}
-                    </p>
-                  </article>
-                </TiltCard>
+              <Reveal key={s.title} delay={(i % 3) * 0.08} className="h-full">
+                <SpotlightCard
+                  spotlightColor="rgba(52, 211, 153, 0.09)"
+                  className="h-full p-7"
+                >
+                  <span className="inline-flex size-10 items-center justify-center rounded-2xl border border-emerald-400/20 bg-emerald-400/[0.06] text-emerald-400">
+                    <s.icon className="size-5" strokeWidth={1.6} aria-hidden="true" />
+                  </span>
+                  <h3 className="mt-5 font-display text-base font-bold tracking-tight">
+                    {s.title}
+                  </h3>
+                  <p className="mt-2.5 text-sm leading-relaxed text-muted-foreground">
+                    {s.body}
+                  </p>
+                </SpotlightCard>
               </Reveal>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Terminal + offres */}
-      <section className="border-b border-white/10 bg-[#0d0d0d] py-24 sm:py-32">
-        <div className="mx-auto grid max-w-6xl items-start gap-14 px-5 sm:px-8 lg:grid-cols-2">
+      {/* Diagnostic + Offres */}
+      <section className="section-beam border-b border-white/[0.08] py-24 sm:py-32">
+        <div className="mx-auto grid max-w-6xl items-center gap-12 px-5 sm:px-8 lg:grid-cols-2">
           <Reveal>
-            <h2 className="text-balance font-display text-2xl font-extrabold leading-tight tracking-tight sm:text-4xl">
+            <h2 className="text-balance font-display text-2xl font-extrabold leading-tight tracking-[-0.03em] sm:text-4xl">
               À quoi ressemble{" "}
-              <span className="text-muted-foreground">un site bien protégé ?</span>
+              <span className="text-white/42">un audit actionnable ?</span>
             </h2>
-            <p className="mt-5 text-[15px] leading-relaxed text-muted-foreground">
-              Après chaque audit, vous recevez ce type de rapport : chaque contrôle est
-              expliqué, chaque alerte est priorisée, chaque correction est chiffrée. Pas
-              de fichier PDF illisible de 80 pages — du concret, en français.
+            <p className="mt-5 text-[15px] leading-[1.7] text-muted-foreground">
+              Chaque contrôle est expliqué, chaque vulnérabilité est classée par impact
+              réel et accompagnée de son correctif précis. Pas de rapport automatisé de
+              80 pages impossible à exploiter.
             </p>
-            <p className="mt-5 text-[15px] leading-relaxed text-muted-foreground">
-              Le rapport complet et les correctifs sont livrés sous 72 h après l'audit.
-              Si une faille critique est découverte, nous vous appelons directement —
-              avant d'écrire le moindre rapport.
-            </p>
+            <div className="mt-7">
+              <ActionButton href="/contact?subject=security" variant="primary" size="md">
+                Demander un audit
+              </ActionButton>
+            </div>
           </Reveal>
 
-          <Reveal delay={0.15}>
-            <div className="overflow-hidden rounded-lg border border-white/12 bg-[#050505] shadow-2xl shadow-black/60">
-              <div className="flex items-center justify-between border-b border-white/10 px-4 py-2.5">
+          <Reveal delay={0.12}>
+            <SpotlightCard className="p-6 sm:p-7">
+              <div className="flex items-center justify-between border-b border-white/[0.08] pb-3.5">
                 <div className="flex items-center gap-1.5" aria-hidden="true">
-                  <span className="size-2.5 rounded-full bg-white/20" />
-                  <span className="size-2.5 rounded-full bg-white/20" />
-                  <span className="size-2.5 rounded-full bg-white/20" />
+                  <span className="size-2.5 rounded-full bg-white/25" />
+                  <span className="size-2.5 rounded-full bg-white/15" />
+                  <span className="size-2.5 rounded-full bg-white/15" />
                 </div>
                 <p className="font-mono text-[11px] tracking-[0.14em] text-muted-foreground">
-                  4ur@security: ~/scan
+                  4ur://audit-report
                 </p>
               </div>
-              <div className="p-5 font-mono text-[12px] leading-7 sm:text-[13px]">
+              <div className="mt-4 font-mono text-[12px] leading-7">
                 <p className="text-muted-foreground">
-                  <span className="text-foreground">$</span> 4ur audit --target votre-site.fr
+                  <span className="text-emerald-400">$</span> 4ur scan --deep cible-client.fr
                 </p>
                 <ul className="mt-3 flex flex-col gap-1.5">
                   {TERMINAL_LINES.map((l) => (
                     <li key={l.text} className="flex items-center justify-between gap-3">
                       <span className="text-muted-foreground">
                         <span
-                          className={l.status === "ok" ? "text-foreground" : "text-muted-foreground"}
+                          className={
+                            l.status === "ok" ? "text-emerald-400" : "text-amber-300"
+                          }
                         >
-                          [{l.status === "ok" ? "✓" : "!"}]
+                          [{l.status === "ok" ? "✓" : "•"}]
                         </span>{" "}
                         {l.text}
                       </span>
-                      <span
-                        className={
-                          l.status === "ok"
-                            ? "shrink-0 text-foreground"
-                            : "shrink-0 underline decoration-dotted underline-offset-4"
-                        }
-                      >
-                        {l.value}
-                      </span>
+                      <span className="shrink-0 text-foreground">{l.value}</span>
                     </li>
                   ))}
                 </ul>
-                <p className="mt-4 border-t border-white/10 pt-3 text-muted-foreground">
-                  rapport complet + correctifs —{" "}
-                  <span className="text-foreground">livré sous 72 h</span>
-                  <span className="animate-caret ml-1 inline-block h-3.5 w-2 translate-y-0.5 bg-foreground" />
+                <p className="mt-4 border-t border-white/[0.08] pt-3 text-xs text-muted-foreground">
+                  rapport exécutif + correctifs remis sous{" "}
+                  <span className="text-foreground">72 h ouvrées</span>
                 </p>
               </div>
-            </div>
+            </SpotlightCard>
           </Reveal>
         </div>
 
-        <div className="mx-auto mt-20 max-w-6xl px-5 sm:px-8">
+        <div className="mx-auto mt-24 max-w-6xl px-5 sm:px-8">
           <Reveal>
-            <h2 className="max-w-2xl text-balance font-display text-2xl font-extrabold leading-tight tracking-tight sm:text-4xl">
-              Trois façons de travailler{" "}
-              <span className="text-muted-foreground">avec notre pôle sécurité.</span>
+            <h2 className="max-w-2xl text-balance font-display text-2xl font-extrabold leading-tight tracking-[-0.03em] sm:text-4xl">
+              Nos interventions{" "}
+              <span className="text-white/42">dédiées cybersécurité.</span>
             </h2>
           </Reveal>
-          <div className="mt-12 grid gap-5 md:grid-cols-3">
+          <div className="mt-12 grid gap-6 md:grid-cols-3">
             {securityOffers.map((o, i) => (
-              <Reveal key={o.name} delay={i * 0.1} className="h-full">
-                <article
+              <Reveal key={o.name} delay={i * 0.08} className="h-full">
+                <SpotlightCard
+                  spotlightColor={
+                    i === 2 ? "rgba(52, 211, 153, 0.14)" : "rgba(255, 255, 255, 0.08)"
+                  }
                   className={
                     i === 2
-                      ? "flex h-full flex-col rounded-lg border border-primary bg-primary p-7 text-primary-foreground"
-                      : "flex h-full flex-col rounded-lg border border-white/10 bg-card p-7"
+                      ? "flex h-full flex-col justify-between border-emerald-400/25 p-8"
+                      : "flex h-full flex-col justify-between p-8"
                   }
                 >
-                  <p
-                    className={
-                      i === 2
-                        ? "font-mono text-[10px] uppercase tracking-[0.26em] opacity-70"
-                        : "font-mono text-[10px] uppercase tracking-[0.26em] text-muted-foreground"
-                    }
-                  >
-                    offre
-                  </p>
-                  <h3 className="mt-4 font-display text-lg font-bold tracking-tight">
-                    {o.name}
-                  </h3>
-                  <p
-                    className={
-                      i === 2
-                        ? "mt-1.5 font-display text-xl font-extrabold tracking-tight"
-                        : "mt-1.5 font-display text-xl font-extrabold tracking-tight"
-                    }
-                  >
-                    {o.price}
-                  </p>
-                  <p
-                    className={
-                      i === 2
-                        ? "mt-2 text-sm opacity-80"
-                        : "mt-2 text-sm text-muted-foreground"
-                    }
-                  >
-                    {o.pitch}
-                  </p>
-                  <ul className="mt-5 flex flex-col gap-2.5">
-                    {o.features.map((f) => (
-                      <li key={f} className="flex items-start gap-2.5 text-[13px] leading-snug">
-                        <span
-                          className="mt-[7px] size-1.5 shrink-0 rounded-full bg-current opacity-70"
-                          aria-hidden="true"
-                        />
-                        {f}
-                      </li>
-                    ))}
-                  </ul>
-                </article>
+                  <div>
+                    <p className="font-mono text-[10px] uppercase tracking-[0.26em] text-emerald-400">
+                      intervention
+                    </p>
+                    <h3 className="mt-4 font-display text-xl font-bold tracking-tight">
+                      {o.name}
+                    </h3>
+                    <p className="text-platinum mt-2 font-display text-2xl font-extrabold tracking-tight">
+                      {o.price}
+                    </p>
+                    <p className="mt-2.5 text-sm leading-relaxed text-muted-foreground">
+                      {o.pitch}
+                    </p>
+                    <ul className="mt-6 flex flex-col gap-2.5 border-t border-white/[0.08] pt-5">
+                      {o.features.map((f) => (
+                        <li
+                          key={f}
+                          className="flex items-start gap-2.5 text-[13px] leading-snug text-foreground/90"
+                        >
+                          <Check className="mt-0.5 size-4 shrink-0 text-emerald-400" />
+                          <span>{f}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div className="mt-8">
+                    <ActionButton
+                      href={`/contact?subject=security&draft=${encodeURIComponent(
+                        `Bonjour, je souhaite un devis pour l'offre sécurité : ${o.name}.`
+                      )}`}
+                      variant={i === 2 ? "primary" : "secondary"}
+                      size="md"
+                      fullWidth
+                    >
+                      Choisir cette intervention
+                    </ActionButton>
+                  </div>
+                </SpotlightCard>
               </Reveal>
             ))}
           </div>
@@ -271,10 +270,10 @@ export default async function SecurityPage() {
       </section>
 
       <CtaBanner
-        title="Un doute sur votre sécurité actuelle ?"
+        title="Un doute sur votre exposition actuelle ?"
         titleMuted="Vérifions ensemble."
-        body="L'audit express de 30 minutes est offert et sans engagement. Au pire, vous repartez avec trois recommandations concrètes. Au mieux, on vous évite 330 000 € de dégâts."
-        cta="Réserver mon audit gratuit"
+        body="L'échange de pré-diagnostic de 30 minutes est offert et confidentiel."
+        cta="Planifier mon pré-diagnostic"
       />
     </>
   );

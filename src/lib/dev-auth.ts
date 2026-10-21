@@ -1,24 +1,39 @@
-import { createHash, createHmac, timingSafeEqual } from "crypto";
+import { createHash, createHmac, randomBytes, timingSafeEqual } from "crypto";
 import "server-only";
 
 /**
- * Auth du menu « dev » caché.
- * - PIN défini dans .env (DEV_PANEL_PIN). Aucun repli en dur : sans variable
- *   d'environnement, le panneau reste fermé (message explicite dans les logs).
- * - Session : cookie httpOnly signé HMAC (12 h), aucune donnée sensible dedans.
- * - Rate limit via `@/lib/rate-limit` : par IP (si proxy de confiance) + plafond
- *   global, avec délai progressif à chaque échec.
+ * Authentification du Dashboard protégé par mot de passe (`/dashboard` & API admin).
+ * - Mot de passe lu uniquement depuis les variables d'environnement :
+ *   `DASHBOARD_PASSWORD` (prioritaire) ou `DEV_PANEL_PIN` (repli compatible).
+ * - Session signée HMAC-SHA256 valable 12 h, acceptée à la fois via cookie `httpOnly`
+ *   et via en-tête `Authorization: Bearer <token>` (indispensable en iframe cross-site).
+ * - Protection brute-force : comparaison timing-safe SHA-256 + rate-limit + délai progressif.
  */
 
-const PIN = process.env.DEV_PANEL_PIN ?? "";
-const SECRET = process.env.DEV_PANEL_SECRET ?? "";
+const globalForSecret = globalThis as unknown as { __4urFallbackSecret?: string };
+if (!globalForSecret.__4urFallbackSecret) {
+  globalForSecret.__4urFallbackSecret = randomBytes(32).toString("hex");
+}
+
+function getPassword(): string {
+  return (process.env.DASHBOARD_PASSWORD || process.env.DEV_PANEL_PIN || "").trim();
+}
+
+function getSecret(): string {
+  return (
+    process.env.DASHBOARD_SECRET ||
+    process.env.DEV_PANEL_SECRET ||
+    globalForSecret.__4urFallbackSecret ||
+    ""
+  ).trim();
+}
 
 export const DEV_COOKIE = "4ur_dev_session";
 export const SESSION_TTL_MS = 12 * 60 * 60 * 1000; // 12 h
 
-/** Le panneau est-il configuré (PIN + secret présents) ? */
+/** Le dashboard est-il configuré (mot de passe défini dans l'environnement) ? */
 export function isDevPanelConfigured(): boolean {
-  return PIN.length > 0 && SECRET.length > 0;
+  return getPassword().length > 0 && getSecret().length > 0;
 }
 
 /** Hash SHA-256 (comparaison en timing-safe, longueurs égales garanties). */
@@ -26,16 +41,17 @@ function sha256(input: string): Buffer {
   return createHash("sha256").update(input).digest();
 }
 
-/** Le PIN saisi correspond-il au PIN attendu ? */
+/** Le mot de passe saisi correspond-il au mot de passe attendu ? */
 export function verifyPin(candidate: string): boolean {
-  if (!isDevPanelConfigured()) return false;
-  return timingSafeEqual(sha256(candidate), sha256(PIN));
+  const expected = getPassword();
+  if (!expected) return false;
+  return timingSafeEqual(sha256(candidate.trim()), sha256(expected));
 }
 
 /** Génère un token de session : `<expiration>.<hmac(expiration)>`. */
 export function createSessionToken(): string {
   const exp = String(Date.now() + SESSION_TTL_MS);
-  const sig = createHmac("sha256", SECRET).update(exp).digest("hex");
+  const sig = createHmac("sha256", getSecret()).update(exp).digest("hex");
   return `${exp}.${sig}`;
 }
 
@@ -46,15 +62,21 @@ export function verifySessionToken(token: string | undefined): boolean {
   if (dot <= 0) return false;
   const exp = token.slice(0, dot);
   const sig = token.slice(dot + 1);
-  const expected = createHmac("sha256", SECRET).update(exp).digest("hex");
+  const expected = createHmac("sha256", getSecret()).update(exp).digest("hex");
   const a = Buffer.from(sig);
   const b = Buffer.from(expected);
   if (a.length !== b.length || !timingSafeEqual(a, b)) return false;
   return Number(exp) > Date.now();
 }
 
-/** Extrait et valide la session depuis l'en-tête Cookie. */
+/** Extrait et valide la session depuis `Authorization: Bearer ...` ou le cookie `httpOnly`. */
 export function isAuthorized(request: Request): boolean {
+  const bearer = request.headers.get("authorization");
+  if (bearer?.toLowerCase().startsWith("bearer ")) {
+    const token = bearer.slice(7).trim();
+    if (verifySessionToken(token)) return true;
+  }
+
   const cookie = request.headers.get("cookie") ?? "";
   const match = cookie
     .split(";")
@@ -65,8 +87,8 @@ export function isAuthorized(request: Request): boolean {
 }
 
 /**
- * Délai progressif avant de répondre à un PIN erroné : 300 ms × échecs, plafonné
- * à 3 s. Rend le brute-force inutilisable même sous le plafond global.
+ * Délai progressif avant de répondre à un mot de passe erroné : 300 ms × échecs,
+ * plafonné à 3 s. Rend le brute-force inutilisable même sous le plafond global.
  */
 export function sleepBeforeReject(remaining: number, limit: number): Promise<void> {
   const failures = Math.max(0, limit - remaining);

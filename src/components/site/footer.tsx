@@ -1,77 +1,121 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { DevTrigger } from "./dev-panel";
 
-const NAV = [
-  { href: "/web", label: "Pôle Web" },
-  { href: "/security", label: "Pôle Sécurité" },
-  { href: "/methode", label: "Méthode" },
-  { href: "/tarifs", label: "Tarifs" },
-  { href: "/contact", label: "Contact" },
-];
-
-const LEGAL_LINKS = [
-  { href: "/mentions-legales", label: "Mentions légales" },
-  { href: "/confidentialite", label: "Confidentialité" },
+const COLUMNS = [
+  {
+    title: "Expertises",
+    links: [
+      { href: "/web", label: "Pôle Ingénierie Web" },
+      { href: "/security", label: "Pôle Cybersécurité" },
+      { href: "/methode", label: "Méthode by design" },
+      { href: "/tarifs", label: "Formules & Tarifs" },
+    ],
+  },
+  {
+    title: "Expériences",
+    links: [
+      { href: "/realisations", label: "Réalisations & Études" },
+      { href: "/lab", label: "Le Lab Cyber & Vitesse" },
+      { href: "/simulateur", label: "Simulateur de devis" },
+    ],
+  },
+  {
+    title: "Le Studio",
+    links: [
+      { href: "/a-propos", label: "À propos & FAQ" },
+      { href: "/contact", label: "Démarrer un projet" },
+      { href: "/mentions-legales", label: "Mentions légales" },
+      { href: "/confidentialite", label: "Confidentialité" },
+    ],
+  },
 ];
 
 export function Footer() {
+  const [parisTime, setParisTime] = useState<string>("");
+
+  useEffect(() => {
+    const update = () => {
+      setParisTime(
+        new Date().toLocaleTimeString("fr-FR", {
+          timeZone: "Europe/Paris",
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+        })
+      );
+    };
+    const timer = setInterval(update, 1000);
+    const init = setTimeout(update, 0);
+    return () => {
+      clearTimeout(init);
+      clearInterval(timer);
+    };
+  }, []);
+
   return (
-    <footer className="mt-auto border-t border-white/10 bg-[#050505] pb-20 lg:pb-0">
-      <div className="mx-auto max-w-6xl px-5 py-14 sm:px-8">
-        <div className="flex flex-col items-start justify-between gap-10 md:flex-row md:items-center">
-          <div className="flex items-center gap-4">
-            <Image
-              src="/4ur/icon-4ur.png"
-              alt="Logo 4ur"
-              width={40}
-              height={40}
-              className="size-10 rounded-lg"
-            />
-            <div>
-              <p className="font-display text-lg font-extrabold tracking-[0.18em]">4UR</p>
-              <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
-                for your needs.
-              </p>
+    <footer className="relative mt-auto overflow-hidden border-t border-white/[0.08] bg-[#040406] pb-24 lg:pb-0">
+      <div className="mx-auto max-w-6xl px-5 pt-16 pb-12 sm:px-8 sm:pt-20">
+        <div className="grid gap-12 lg:grid-cols-[1.35fr_2fr]">
+          {/* Signature marque */}
+          <div>
+            <Link href="/" className="inline-flex items-center gap-3">
+              <Image
+                src="/4ur/icon-4ur.png"
+                alt="Logo 4ur"
+                width={36}
+                height={36}
+                className="size-9 rounded-full border border-white/15"
+              />
+              <span className="font-display text-lg font-extrabold tracking-[0.2em]">
+                4UR
+              </span>
+            </Link>
+            <p className="mt-4 max-w-xs text-[13.5px] leading-relaxed text-muted-foreground">
+              Studio d&apos;ingénierie web et de cybersécurité offensive &amp; défensive.
+              Conçu sur mesure, durci dès la première ligne.
+            </p>
+            <div className="mt-6 inline-flex items-center gap-2.5 rounded-full border border-white/[0.08] bg-white/[0.025] px-3.5 py-1.5 font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
+              <span className="size-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
+              <span>paris {parisTime ? `· ${parisTime}` : ""} · opérationnel</span>
             </div>
           </div>
 
-          <nav aria-label="Navigation de pied de page">
-            <ul className="flex flex-wrap items-center gap-x-7 gap-y-3">
-              {NAV.map((l) => (
-                <li key={l.href}>
-                  <Link
-                    href={l.href}
-                    className="text-[13px] text-muted-foreground transition-colors hover:text-foreground"
-                  >
-                    {l.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </nav>
+          {/* Colonnes de navigation */}
+          <div className="grid grid-cols-2 gap-8 sm:grid-cols-3">
+            {COLUMNS.map((col) => (
+              <div key={col.title}>
+                <p className="font-mono text-[10.5px] uppercase tracking-[0.24em] text-foreground/85">
+                  {col.title}
+                </p>
+                <ul className="mt-4 flex flex-col gap-2.5">
+                  {col.links.map((l) => (
+                    <li key={l.href}>
+                      <Link
+                        href={l.href}
+                        className="text-[13.5px] text-muted-foreground transition-colors duration-150 hover:text-foreground"
+                      >
+                        {l.label}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
         </div>
 
-        {/* Bandeau signature, clin d'œil à la charte « fin de page » */}
-        <div className="mt-12 flex flex-col items-center justify-between gap-4 border-t border-white/10 pt-8 sm:flex-row">
-          <p className="relative font-mono text-[10px] uppercase tracking-[0.28em] text-muted-foreground/70">
+        {/* Barre inférieure discrète + accès furtif propriétaire */}
+        <div className="mt-16 flex flex-col items-center justify-between gap-4 border-t border-white/[0.07] pt-8 sm:flex-row">
+          <p className="relative select-none font-mono text-[10px] uppercase tracking-[0.26em] text-muted-foreground/70">
             © {new Date().getFullYear()} 4ur — tous droits réservés
             <DevTrigger />
           </p>
-          <p className="order-first font-mono text-[11px] uppercase tracking-[0.34em] text-foreground sm:order-none">
-            — for your digital world —
-          </p>
-          <p className="flex flex-wrap items-center gap-x-5 gap-y-2 font-mono text-[10px] uppercase tracking-[0.28em] text-muted-foreground/70">
-            <span>web · security</span>
-            {LEGAL_LINKS.map((l) => (
-              <Link
-                key={l.href}
-                href={l.href}
-                className="transition-colors hover:text-foreground"
-              >
-                {l.label}
-              </Link>
-            ))}
+          <p className="font-mono text-[10px] uppercase tracking-[0.32em] text-muted-foreground/60">
+            for your needs · web &amp; cyber engineering
           </p>
         </div>
       </div>
