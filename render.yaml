@@ -16,8 +16,8 @@ services:
     region: frankfurt
     plan: free
     healthCheckPath: /api/health
-    buildCommand: bun install --no-frozen-lockfile && bun run db:generate && bun run build
-    startCommand: mkdir -p /tmp/4ur-db && export DATABASE_URL="${DATABASE_URL:-file:/tmp/4ur-db/custom.db}" && bun run db:push && HOSTNAME=0.0.0.0 PORT=$PORT bun .next/standalone/server.js
+    buildCommand: bun install --no-frozen-lockfile && bun run build
+    startCommand: HOSTNAME=0.0.0.0 PORT=$PORT bun .next/standalone/server.js
     envVars:
       # --- Techniques (valeurs connues) ---
       - key: NODE_ENV

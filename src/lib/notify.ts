@@ -1,14 +1,15 @@
 import "server-only";
 
+import { getMonitorConfig } from "@/lib/monitor";
+
 /**
  * Notification des nouvelles demandes de contact.
  *
- * Deux canaux optionnels (aucune dépendance externe, tout passe par `fetch`) :
- * - email via l'API Resend (RESEND_API_KEY + CONTACT_NOTIFY_EMAIL)
- * - webhook générique (CONTACT_WEBHOOK_URL) : Slack, Discord, Make, n8n…
- *
- * Si rien n'est configuré, la demande reste enregistrée en base et un avertissement
- * est journalisé — le formulaire continue de fonctionner.
+ * Fonctionne sans aucun disque persistant :
+ * - Webhook dédié `CONTACT_WEBHOOK_URL` ou repli automatique sur le Webhook Discord
+ *   configuré dans `/dashboard` (`DISCORD_WEBHOOK_URL` / `monitorConfig`) afin
+ *   qu'aucun message client ne soit jamais perdu lors d'un redéploiement Render.
+ * - E-mail optionnel via l'API Resend (`RESEND_API_KEY` + `CONTACT_NOTIFY_EMAIL`).
  */
 
 export interface LeadNotification {
@@ -29,8 +30,10 @@ const SUBJECT_LABELS: Record<string, string> = {
 
 function renderText(lead: LeadNotification): string {
   const receivedAt =
-    lead.createdAt instanceof Date ? lead.createdAt : new Date(lead.createdAt ?? Date.now());
-  const lines = [
+    lead.createdAt instanceof Date
+      ? lead.createdAt
+      : new Date(lead.createdAt ?? Date.now());
+  return [
     `Nouvelle demande — ${SUBJECT_LABELS[lead.subject] ?? lead.subject}`,
     "",
     `Nom : ${lead.name}`,
@@ -41,30 +44,75 @@ function renderText(lead: LeadNotification): string {
     "",
     "Message :",
     lead.message,
-  ];
-  return lines.join("\n");
+  ].join("\n");
 }
 
 export async function notifyLead(lead: LeadNotification): Promise<void> {
   const to = process.env.CONTACT_NOTIFY_EMAIL?.trim();
   const apiKey = process.env.RESEND_API_KEY?.trim();
-  const webhook = process.env.CONTACT_WEBHOOK_URL?.trim();
+
+  let webhook = process.env.CONTACT_WEBHOOK_URL?.trim() || "";
+  if (!webhook) {
+    try {
+      const monitorCfg = await getMonitorConfig();
+      webhook = monitorCfg.discordWebhookUrl.trim();
+    } catch {
+      webhook = (process.env.DISCORD_WEBHOOK_URL ?? "").trim();
+    }
+  }
 
   if (!to && !webhook) {
     console.warn(
-      "[contact] aucune notification configurée (CONTACT_NOTIFY_EMAIL / RESEND_API_KEY ou CONTACT_WEBHOOK_URL) — la demande est uniquement enregistrée en base."
+      "[contact] aucune notification externe configurée — la demande est conservée en mémoire /tmp."
     );
     return;
   }
 
   const text = renderText(lead);
+  const receivedAt =
+    lead.createdAt instanceof Date
+      ? lead.createdAt
+      : new Date(lead.createdAt ?? Date.now());
 
   if (webhook) {
     try {
+      const isDiscord = /discord(?:app)?\.com\/api\/webhooks\//i.test(webhook);
+      const body = isDiscord
+        ? {
+            username: "4UR Leads",
+            embeds: [
+              {
+                title: `📩 Nouvelle demande — ${SUBJECT_LABELS[lead.subject] ?? lead.subject}`,
+                color: 0xfafafa,
+                fields: [
+                  { name: "Nom", value: lead.name, inline: true },
+                  { name: "Email", value: lead.email, inline: true },
+                  {
+                    name: "Entreprise",
+                    value: lead.company?.trim() || "—",
+                    inline: true,
+                  },
+                  {
+                    name: "Budget",
+                    value: lead.budget?.trim() || "Non précisé",
+                    inline: true,
+                  },
+                  {
+                    name: "Message",
+                    value: lead.message.slice(0, 1020),
+                    inline: false,
+                  },
+                ],
+                timestamp: receivedAt.toISOString(),
+              },
+            ],
+          }
+        : { content: text, text, lead };
+
       await fetch(webhook, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content: text, text, lead }),
+        body: JSON.stringify(body),
       });
     } catch (err) {
       console.error("[contact] envoi du webhook impossible:", err);

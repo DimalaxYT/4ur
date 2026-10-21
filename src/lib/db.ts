@@ -72,7 +72,11 @@ function generateId(): string {
 }
 
 function resolveSqlitePath(): string {
-  const raw = (process.env.DATABASE_URL ?? "file:./db/custom.db").trim();
+  const defaultRaw =
+    process.env.NODE_ENV === "production"
+      ? "file:/tmp/4ur-db/custom.db"
+      : "file:./db/custom.db";
+  const raw = (process.env.DATABASE_URL || defaultRaw).trim();
   if (raw === ":memory:" || raw === "file::memory:") return ":memory:";
 
   const stripped = raw.startsWith("file:") ? raw.slice(5).split("?")[0] : raw;
@@ -80,15 +84,30 @@ function resolveSqlitePath(): string {
     ? stripped
     : resolve(process.cwd(), "prisma", stripped);
 
-  mkdirSync(dirname(fullPath), { recursive: true });
-  return fullPath;
+  try {
+    mkdirSync(dirname(fullPath), { recursive: true });
+    return fullPath;
+  } catch {
+    try {
+      mkdirSync("/tmp/4ur-db", { recursive: true });
+      return "/tmp/4ur-db/custom.db";
+    } catch {
+      return ":memory:";
+    }
+  }
 }
 
-function openAdapter(dbPath: string): RawSqlAdapter {
-  const dynamicReq = new Function("id", "return require(id)") as (id: string) => unknown;
+function openSqliteAtPath(dbPath: string): RawSqlAdapter {
+  const getBuiltin = (
+    process as unknown as { getBuiltinModule?: (id: string) => unknown }
+  ).getBuiltinModule;
+
+  if (!getBuiltin) {
+    throw new Error("process.getBuiltinModule indisponible sur ce runtime.");
+  }
 
   if ("Bun" in globalThis) {
-    const { Database } = dynamicReq("bun:sqlite") as {
+    const { Database } = getBuiltin("bun:sqlite") as {
       Database: new (
         filename: string,
         options?: { create?: boolean }
@@ -114,13 +133,7 @@ function openAdapter(dbPath: string): RawSqlAdapter {
     };
   }
 
-  const getBuiltin = (
-    process as unknown as { getBuiltinModule?: (id: string) => unknown }
-  ).getBuiltinModule;
-
-  const sqliteMod = (getBuiltin
-    ? getBuiltin("node:sqlite")
-    : dynamicReq("node:sqlite")) as {
+  const sqliteMod = getBuiltin("node:sqlite") as {
     DatabaseSync: new (filename: string) => {
       exec(sql: string): void;
       prepare(sql: string): {
@@ -143,11 +156,25 @@ function openAdapter(dbPath: string): RawSqlAdapter {
   };
 }
 
-const SCHEMA_SQL = `
+function openAdapter(dbPath: string): RawSqlAdapter {
+  try {
+    return openSqliteAtPath(dbPath);
+  } catch (err) {
+    console.warn(
+      `[db] Ouverture sur ${dbPath} impossible, bascule automatique en RAM (:memory:) :`,
+      err
+    );
+    return openSqliteAtPath(":memory:");
+  }
+}
+
+const PRAGMA_SQL = `
 PRAGMA journal_mode = WAL;
 PRAGMA synchronous = NORMAL;
 PRAGMA busy_timeout = 5000;
+`;
 
+const SCHEMA_SQL = `
 CREATE TABLE IF NOT EXISTS "SiteContent" (
   "key" TEXT NOT NULL PRIMARY KEY,
   "value" TEXT NOT NULL,
@@ -202,6 +229,11 @@ const globalForDb = globalThis as unknown as { __4urSqlAdapter?: RawSqlAdapter }
 function sql(): RawSqlAdapter {
   if (!globalForDb.__4urSqlAdapter) {
     const adapter = openAdapter(resolveSqlitePath());
+    try {
+      adapter.exec(PRAGMA_SQL);
+    } catch {
+      /* ignoré en mode :memory: */
+    }
     adapter.exec(SCHEMA_SQL);
     globalForDb.__4urSqlAdapter = adapter;
   }
