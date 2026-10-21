@@ -12,13 +12,13 @@ import { checkLimit, resetLimit } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 
-/** Plafond de tentatives par IP — doit rester cohérent avec `rate-limit.ts`. */
-const PIN_LIMIT = 5;
+/** Plafond de tentatives par IP — cohérent avec `rate-limit.ts`. */
+const PIN_LIMIT = 8;
 
 /**
- * POST /api/dev/auth — vérifie le PIN et ouvre une session dev (cookie signé 12 h).
- * GET  /api/dev/auth  — la session est-elle encore valide ?
- * DELETE /api/dev/auth — ferme la session (supprime le cookie).
+ * POST   /api/dev/auth — vérifie le mot de passe et ouvre une session signée 12 h.
+ * GET    /api/dev/auth — la session est-elle active ?
+ * DELETE /api/dev/auth — déconnecte la session.
  */
 export async function POST(request: Request) {
   const limit = checkLimit(request, "dev-pin");
@@ -33,32 +33,47 @@ export async function POST(request: Request) {
   try {
     if (!isDevPanelConfigured()) {
       console.error(
-        "[/api/dev/auth] panneau dev non configuré : renseignez DEV_PANEL_PIN et DEV_PANEL_SECRET."
+        "[/api/dev/auth] Dashboard non configuré : définissez DASHBOARD_PASSWORD (ou DEV_PANEL_PIN) dans .env."
       );
       return NextResponse.json(
-        { ok: false, error: "Panneau non configuré côté serveur." },
+        {
+          ok: false,
+          error:
+            "Mot de passe non configuré côté serveur (définissez DASHBOARD_PASSWORD dans .env).",
+        },
         { status: 503 }
       );
     }
 
-    const body = (await request.json().catch(() => ({}))) as { pin?: unknown };
-    const pin = typeof body.pin === "string" ? body.pin : "";
+    const body = (await request.json().catch(() => ({}))) as {
+      pin?: unknown;
+      password?: unknown;
+    };
+    const raw =
+      typeof body.password === "string"
+        ? body.password
+        : typeof body.pin === "string"
+          ? body.pin
+          : "";
 
-    if (!pin || !verifyPin(pin)) {
+    if (!raw || !verifyPin(raw)) {
       await sleepBeforeReject(limit.remaining, PIN_LIMIT);
       return NextResponse.json(
-        { ok: false, error: "Code incorrect.", remaining: limit.remaining },
+        { ok: false, error: "Mot de passe incorrect.", remaining: limit.remaining },
         { status: 401 }
       );
     }
 
     resetLimit(request, "dev-pin");
 
-    const res = NextResponse.json({ ok: true });
-    res.cookies.set(DEV_COOKIE, createSessionToken(), {
+    const token = createSessionToken();
+    const res = NextResponse.json({ ok: true, token });
+    res.cookies.set(DEV_COOKIE, token, {
       httpOnly: true,
-      sameSite: "strict",
-      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      secure:
+        process.env.NODE_ENV === "production" &&
+        process.env.ALLOW_PREVIEW_IFRAME !== "1",
       path: "/",
       maxAge: SESSION_TTL_MS / 1000,
     });
@@ -70,14 +85,17 @@ export async function POST(request: Request) {
 }
 
 export async function GET(request: Request) {
-  return NextResponse.json({ ok: isAuthorized(request) });
+  return NextResponse.json(
+    { ok: isAuthorized(request), configured: isDevPanelConfigured() },
+    { headers: { "Cache-Control": "no-store" } }
+  );
 }
 
 export async function DELETE() {
   const res = NextResponse.json({ ok: true });
   res.cookies.set(DEV_COOKIE, "", {
     httpOnly: true,
-    sameSite: "strict",
+    sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
     path: "/",
     maxAge: 0,

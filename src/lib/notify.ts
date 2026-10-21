@@ -64,7 +64,7 @@ export async function notifyLead(lead: LeadNotification): Promise<void> {
       await fetch(webhook, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text, lead }),
+        body: JSON.stringify({ content: text, text, lead }),
       });
     } catch (err) {
       console.error("[contact] envoi du webhook impossible:", err);

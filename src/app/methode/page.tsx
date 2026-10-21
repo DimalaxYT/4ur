@@ -3,6 +3,7 @@ import { Check } from "lucide-react";
 import { PageHeader } from "@/components/site/page-header";
 import { CtaBanner } from "@/components/site/cta-banner";
 import { Reveal } from "@/components/site/reveal";
+import { SpotlightCard } from "@/components/site/spotlight-card";
 import { ENGAGEMENTS, STEPS_DETAILS } from "@/components/site/steps-data";
 import { ParallaxY } from "@/components/site/parallax";
 
@@ -27,54 +28,54 @@ export default function MethodePage() {
   return (
     <>
       <PageHeader
-        overline="La méthode — 4ur"
+        overline="La méthode · 4ur"
         title="Sécurité by design."
         titleMuted="Pas by patch."
         intro="Notre différence tient en une phrase : chez 4ur, la protection n'est pas une étape finale — c'est le squelette du projet. Quatre temps, aucun angle mort, et des livrables concrets à chaque étape."
-        watermark="DESIGN"
+        watermark="METHODE"
       />
 
       {/* Étapes détaillées */}
-      <section className="border-b border-white/10 py-24 sm:py-32">
+      <section className="section-beam border-b border-white/[0.08] py-24 sm:py-32">
         <div className="mx-auto max-w-6xl px-5 sm:px-8">
           <div className="flex flex-col gap-6">
             {STEPS_DETAILS.map((s, i) => (
               <Reveal key={s.num} delay={0.05 * i}>
-                <article className="relative overflow-hidden rounded-lg border border-white/10 bg-card">
+                <SpotlightCard className="p-7 sm:p-10">
                   <ParallaxY
-                    from={26}
-                    to={-26}
-                    className="pointer-events-none absolute inset-y-0 right-4 flex items-center"
+                    from={24}
+                    to={-24}
+                    className="pointer-events-none absolute inset-y-0 right-6 flex items-center"
                   >
                     <span
                       aria-hidden="true"
-                      className="select-none font-display text-[7rem] font-black leading-none text-transparent sm:text-[9rem]"
-                      style={{ WebkitTextStroke: "1.2px rgba(250,250,249,0.10)" }}
+                      className="select-none font-display text-[6.5rem] font-black leading-none text-transparent sm:text-[8.5rem]"
+                      style={{ WebkitTextStroke: "1px rgba(255,255,255,0.06)" }}
                     >
                       {s.num}
                     </span>
                   </ParallaxY>
-                  <div className="relative grid gap-6 p-7 sm:p-10 lg:grid-cols-[1.2fr_1fr]">
+                  <div className="relative grid gap-6 lg:grid-cols-[1.2fr_1fr]">
                     <div>
-                      <p className="font-mono text-[11px] uppercase tracking-[0.3em] text-muted-foreground">
+                      <p className="font-mono text-[10.5px] uppercase tracking-[0.28em] text-emerald-400">
                         étape {s.num}
                       </p>
                       <h2 className="mt-3 font-display text-2xl font-extrabold tracking-tight sm:text-3xl">
                         {s.title}
                       </h2>
-                      <p className="mt-4 max-w-xl text-[15px] leading-relaxed text-muted-foreground">
+                      <p className="mt-4 max-w-xl text-[15px] leading-[1.7] text-muted-foreground">
                         {s.body}
                       </p>
                     </div>
-                    <div className="rounded-md border border-white/10 bg-secondary/40 p-5">
+                    <div className="rounded-2xl border border-white/[0.08] bg-white/[0.025] p-6">
                       <p className="font-mono text-[10px] uppercase tracking-[0.26em] text-muted-foreground">
-                        vous recevez
+                        livrables remis
                       </p>
-                      <ul className="mt-3.5 flex flex-col gap-2.5">
+                      <ul className="mt-4 flex flex-col gap-2.5">
                         {s.deliverables.map((d) => (
-                          <li key={d} className="flex items-start gap-2.5 text-[13px] leading-snug">
+                          <li key={d} className="flex items-start gap-2.5 text-[13.5px] leading-snug">
                             <Check
-                              className="mt-0.5 size-4 shrink-0"
+                              className="mt-0.5 size-4 shrink-0 text-emerald-400"
                               strokeWidth={2.5}
                               aria-hidden="true"
                             />
@@ -84,7 +85,7 @@ export default function MethodePage() {
                       </ul>
                     </div>
                   </div>
-                </article>
+                </SpotlightCard>
               </Reveal>
             ))}
           </div>
@@ -92,23 +93,23 @@ export default function MethodePage() {
       </section>
 
       {/* Engagements */}
-      <section className="border-b border-white/10 bg-[#0d0d0d] py-24 sm:py-32">
+      <section className="section-beam border-b border-white/[0.08] py-24 sm:py-32">
         <div className="mx-auto max-w-6xl px-5 sm:px-8">
           <Reveal>
-            <h2 className="max-w-2xl text-balance font-display text-2xl font-extrabold leading-tight tracking-tight sm:text-4xl">
+            <h2 className="max-w-2xl text-balance font-display text-2xl font-extrabold leading-tight tracking-[-0.03em] sm:text-4xl">
               Nos engagements,{" "}
-              <span className="text-muted-foreground">écrits noir sur blanc.</span>
+              <span className="text-white/42">écrits noir sur blanc.</span>
             </h2>
           </Reveal>
           <div className="mt-12 grid gap-5 sm:grid-cols-3">
             {ENGAGEMENTS.map((x, i) => (
-              <Reveal key={x.k} delay={i * 0.1} className="h-full">
-                <div className="h-full rounded-lg border border-white/10 bg-secondary/40 px-6 py-6">
-                  <p className="font-mono text-[10px] uppercase tracking-[0.26em] text-muted-foreground">
+              <Reveal key={x.k} delay={i * 0.08} className="h-full">
+                <SpotlightCard className="h-full p-7">
+                  <p className="font-mono text-[10.5px] uppercase tracking-[0.24em] text-emerald-400">
                     {x.k}
                   </p>
-                  <p className="mt-2.5 text-sm font-medium leading-relaxed">{x.v}</p>
-                </div>
+                  <p className="mt-3 text-sm font-medium leading-relaxed">{x.v}</p>
+                </SpotlightCard>
               </Reveal>
             ))}
           </div>
@@ -119,9 +120,9 @@ export default function MethodePage() {
       <section className="py-24 sm:py-32">
         <div className="mx-auto max-w-6xl px-5 sm:px-8">
           <Reveal>
-            <h2 className="max-w-2xl text-balance font-display text-2xl font-extrabold leading-tight tracking-tight sm:text-4xl">
-              Ce que chaque projet inclut,{" "}
-              <span className="text-muted-foreground">quelle que soit la formule.</span>
+            <h2 className="max-w-2xl text-balance font-display text-2xl font-extrabold leading-tight tracking-[-0.03em] sm:text-4xl">
+              Inclus d&apos;office,{" "}
+              <span className="text-white/42">quelle que soit la formule.</span>
             </h2>
           </Reveal>
           <Reveal delay={0.1}>
@@ -129,10 +130,10 @@ export default function MethodePage() {
               {INCLUDED.map((item) => (
                 <li
                   key={item}
-                  className="flex items-start gap-3 border-b border-white/5 pb-4 text-sm leading-relaxed"
+                  className="flex items-start gap-3 border-b border-white/[0.06] pb-4 text-sm leading-relaxed"
                 >
                   <Check
-                    className="mt-0.5 size-4 shrink-0"
+                    className="mt-0.5 size-4 shrink-0 text-emerald-400"
                     strokeWidth={2.5}
                     aria-hidden="true"
                   />
@@ -141,23 +142,12 @@ export default function MethodePage() {
               ))}
             </ul>
           </Reveal>
-
-          <Reveal delay={0.15}>
-            <blockquote className="mt-16 rounded-lg border-l-2 border-primary bg-secondary/60 px-7 py-6 sm:px-10">
-              <p className="text-balance font-display text-xl font-bold leading-snug tracking-tight sm:text-2xl">
-                « Un site non sécurisé n'est pas un site. C'est une porte ouverte. »
-              </p>
-              <footer className="mt-3 font-mono text-[11px] uppercase tracking-[0.24em] text-muted-foreground">
-                — l'adn 4ur
-              </footer>
-            </blockquote>
-          </Reveal>
         </div>
       </section>
 
       <CtaBanner
-        title="Envie de voir la méthode"
-        titleMuted="appliquée à votre projet ?"
+        title="Envie d'appliquer cette rigueur"
+        titleMuted="à votre projet ?"
         body="L'atelier de cadrage de 2 heures est offert et sans engagement. On cartographie vos besoins et vos risques — ensuite, vous décidez."
         cta="Réserver mon atelier"
       />

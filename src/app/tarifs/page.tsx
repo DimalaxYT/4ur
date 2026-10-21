@@ -5,6 +5,8 @@ import { PricingCards } from "@/components/site/pricing-cards";
 import { CtaBanner } from "@/components/site/cta-banner";
 import { Faq } from "@/components/site/faq";
 import { Reveal } from "@/components/site/reveal";
+import { SpotlightCard } from "@/components/site/spotlight-card";
+import { ActionButton } from "@/components/site/action-button";
 import { getContentBundle } from "@/lib/content";
 import {
   Table,
@@ -14,8 +16,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-
-export const dynamic = "force-dynamic";
 
 export async function generateMetadata(): Promise<Metadata> {
   const { plans } = await getContentBundle();
@@ -37,7 +37,7 @@ const COMPARISON: { label: string; essential: Cell; pro: Cell; entreprise: Cell 
   { label: "Intégrations métier (CRM, API)", essential: false, pro: false, entreprise: true },
   { label: "SEO technique de base", essential: true, pro: true, entreprise: true },
   { label: "SEO renforcé + Analytics", essential: false, pro: true, entreprise: true },
-  { label: "SSL + headers de sécurité", essential: true, pro: true, entreprise: true },
+  { label: "SSL A+ & headers de sécurité", essential: true, pro: true, entreprise: true },
   { label: "Scan de vulnérabilités", essential: false, pro: true, entreprise: true },
   { label: "Audit complet + pentest léger", essential: false, pro: false, entreprise: true },
   { label: "Maintenance incluse", essential: "—", pro: "1 mois offert", entreprise: "Annuelle (SLA)" },
@@ -46,33 +46,44 @@ const COMPARISON: { label: string; essential: Cell; pro: Cell; entreprise: Cell 
 
 const TARIFS_FAQ = [
   {
-    question: "Comment se passe le paiement ?",
+    question: "Comment se passe le règlement ?",
     answer:
-      "Pour les formules à prix fixe : 40 % à la commande (lancement du projet), 60 % à la livraison. Pour les projets Entreprise, un échéancier est établi au devis, généralement par jalons validés ensemble. Paiement par virement, facture avec TVA.",
+      "Pour les formules à prix fixe : 40 % au lancement, 60 % à la mise en ligne. Pour les projets Entreprise, un échéancier par jalons validés ensemble est établi au devis.",
   },
   {
-    question: "Y a-t-il des frais cachés ou des options obligatoires ?",
+    question: "Y a-t-il des frais cachés ou des abonnements imposés ?",
     answer:
-      "Non. Le devis liste tout : périmètre, délais, prix, ce qui est inclus et ce qui ne l'est pas. Les seuls coûts externes possibles (nom de domaine, hébergement, licences premium éventuelles) sont explicités et restent à votre nom.",
+      "Aucun. Le devis détaille l'intégralité du périmètre, des délais et des livrables. Vos noms de domaine et hébergements restent enregistrés directement à votre nom.",
   },
   {
-    question: "Que se passe-t-il si je veux modifier le projet en cours de route ?",
+    question: "Puis-je simuler des options sur mesure avant d'écrire ?",
     answer:
-      "Les petites retouches de contenu sont incluses. Pour une évolution de périmètre, nous chiffrons l'impact en temps et en délai avant de continuer — jamais de surprise sur la facture finale. Tout est validé par écrit avec vous.",
+      "Oui : notre configurateur interactif vous permet d'ajuster la typologie et les briques optionnelles (SEO, multilingue, WebGL, pentest) en quelques clics.",
   },
   {
-    question: "Pourquoi la formule Entreprise est-elle sur devis ?",
+    question: "Pourquoi la formule Entreprise est-elle chiffrée sur mesure ?",
     answer:
-      "Parce qu'un e-commerce ou un portail client peut aller du simple au triple selon les intégrations, les volumes et les exigences de disponibilité. Nous préférons un devis précis après un échange de 30 minutes, plutôt qu'un prix au doigt mouillé.",
+      "Parce qu'un e-commerce ou un portail métier varie fortement selon vos connecteurs, vos volumes et vos contraintes de disponibilité. Un échange de 30 minutes garantit un chiffrage juste.",
   },
 ];
 
 function CellValue({ value }: { value: Cell }) {
   if (value === true)
-    return <Check className="mx-auto size-4 text-foreground" strokeWidth={2.5} aria-label="Inclus" />;
+    return (
+      <Check
+        className="mx-auto size-4 text-emerald-400"
+        strokeWidth={2.5}
+        aria-label="Inclus"
+      />
+    );
   if (value === false)
-    return <Minus className="mx-auto size-4 text-muted-foreground/50" aria-label="Non inclus" />;
-  return <span className="text-[13px]">{value}</span>;
+    return (
+      <Minus
+        className="mx-auto size-4 text-muted-foreground/40"
+        aria-label="Non inclus"
+      />
+    );
+  return <span className="text-[13px] text-foreground/90">{value}</span>;
 }
 
 export default async function TarifsPage() {
@@ -82,105 +93,119 @@ export default async function TarifsPage() {
   return (
     <>
       <PageHeader
-        overline="Tarifs — 4ur"
+        overline="Tarifs · Grille transparente"
         title="Des prix clairs."
         titleMuted="Zéro surprise."
-        intro="Milieu de gamme assumé : ni tarif bradé au détriment de la sécurité, ni facture d'agence parisienne. Le prix est fixe, le périmètre est écrit, les délais sont contractuels."
+        intro="Le prix est fixe, le périmètre est écrit noir sur blanc et les délais sont contractuels. La sécurité native est incluse dans chaque formule."
         watermark="TARIFS"
       />
 
       {/* Formules */}
-      <section className="border-b border-white/10 py-24 sm:py-32">
+      <section className="section-beam border-b border-white/[0.08] py-24 sm:py-32">
         <div className="mx-auto max-w-6xl px-5 sm:px-8">
+          <div className="mb-10 flex flex-wrap items-center justify-between gap-4">
+            <p className="text-sm text-muted-foreground">
+              Besoin d&apos;affiner avec des options précises (SEO, multilingue, pentest) ?
+            </p>
+            <ActionButton
+              href="/simulateur"
+              variant="secondary"
+              size="sm"
+              icon="arrow-right"
+            >
+              Ouvrir le simulateur interactif
+            </ActionButton>
+          </div>
           <PricingCards plans={plans} />
         </div>
       </section>
 
       {/* Comparatif détaillé */}
-      <section className="border-b border-white/10 bg-[#0d0d0d] py-24 sm:py-32">
+      <section className="section-beam border-b border-white/[0.08] py-24 sm:py-32">
         <div className="mx-auto max-w-6xl px-5 sm:px-8">
           <Reveal>
-            <h2 className="max-w-2xl text-balance font-display text-2xl font-extrabold leading-tight tracking-tight sm:text-4xl">
-              Le comparatif{" "}
-              <span className="text-muted-foreground">ligne par ligne.</span>
+            <h2 className="max-w-2xl text-balance font-display text-2xl font-extrabold leading-tight tracking-[-0.03em] sm:text-4xl">
+              Comparatif{" "}
+              <span className="text-white/42">ligne par ligne.</span>
             </h2>
-            <p className="mt-5 max-w-2xl text-[15px] leading-relaxed text-muted-foreground">
-              Pas de zone grise : chaque caractéristique est incluse, chiffrée
-              séparément, ou simplement absente. Faites glisser le tableau sur mobile.
-            </p>
           </Reveal>
-          <Reveal delay={0.1}>
-            <div className="mt-10 overflow-x-auto rounded-lg border border-white/10 bg-card">
-              <Table className="min-w-[640px]">
-                <TableHeader>
-                  <TableRow className="border-white/10 hover:bg-transparent">
-                    <TableHead className="w-[40%] py-4 text-muted-foreground">
-                      Caractéristique
-                    </TableHead>
-                    {planNames.map((n) => (
-                      <TableHead
-                        key={n}
-                        className="py-4 text-center font-display font-bold text-foreground"
-                      >
-                        {n}
+          <Reveal delay={0.08}>
+            <SpotlightCard className="mt-10 p-2 sm:p-4">
+              <div className="overflow-x-auto">
+                <Table className="min-w-[640px]">
+                  <TableHeader>
+                    <TableRow className="border-white/[0.08] hover:bg-transparent">
+                      <TableHead className="w-[40%] py-4 text-muted-foreground">
+                        Caractéristique
                       </TableHead>
-                    ))}
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {COMPARISON.map((row) => (
-                    <TableRow key={row.label} className="border-white/10 hover:bg-white/[0.02]">
-                      <TableCell className="py-3.5 text-[13px] text-muted-foreground">
-                        {row.label}
-                      </TableCell>
-                      <TableCell className="py-3.5 text-center">
-                        <CellValue value={row.essential} />
-                      </TableCell>
-                      <TableCell className="py-3.5 text-center">
-                        <CellValue value={row.pro} />
-                      </TableCell>
-                      <TableCell className="py-3.5 text-center">
-                        <CellValue value={row.entreprise} />
-                      </TableCell>
+                      {planNames.map((n) => (
+                        <TableHead
+                          key={n}
+                          className="py-4 text-center font-display font-bold text-foreground"
+                        >
+                          {n}
+                        </TableHead>
+                      ))}
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+                  </TableHeader>
+                  <TableBody>
+                    {COMPARISON.map((row) => (
+                      <TableRow
+                        key={row.label}
+                        className="border-white/[0.06] hover:bg-white/[0.025]"
+                      >
+                        <TableCell className="py-3.5 text-[13px] text-muted-foreground">
+                          {row.label}
+                        </TableCell>
+                        <TableCell className="py-3.5 text-center">
+                          <CellValue value={row.essential} />
+                        </TableCell>
+                        <TableCell className="py-3.5 text-center">
+                          <CellValue value={row.pro} />
+                        </TableCell>
+                        <TableCell className="py-3.5 text-center">
+                          <CellValue value={row.entreprise} />
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </SpotlightCard>
           </Reveal>
         </div>
       </section>
 
       {/* Services récurrents */}
-      <section className="border-b border-white/10 py-24 sm:py-32">
+      <section className="section-beam border-b border-white/[0.08] py-24 sm:py-32">
         <div className="mx-auto max-w-6xl px-5 sm:px-8">
           <Reveal>
-            <h2 className="max-w-2xl text-balance font-display text-2xl font-extrabold leading-tight tracking-tight sm:text-4xl">
-              Les services{" "}
-              <span className="text-muted-foreground">qui tournent chaque mois.</span>
+            <h2 className="max-w-2xl text-balance font-display text-2xl font-extrabold leading-tight tracking-[-0.03em] sm:text-4xl">
+              Continuité &amp;{" "}
+              <span className="text-white/42">supervision mensuelle.</span>
             </h2>
-            <p className="mt-5 max-w-2xl text-[15px] leading-relaxed text-muted-foreground">
-              Sans engagement long : chaque abonnement est résiliable à tout moment, avec
-              récupération de tous vos accès et données.
+            <p className="mt-4 max-w-2xl text-[15px] leading-relaxed text-muted-foreground">
+              Sans engagement de durée : résiliable à tout moment avec restitution
+              complète.
             </p>
           </Reveal>
-          <div className="mt-12 grid gap-5 md:grid-cols-3">
+          <div className="mt-12 grid gap-6 md:grid-cols-3">
             {recurring.map((r, i) => (
-              <Reveal key={r.name} delay={i * 0.1} className="h-full">
-                <article className="h-full rounded-lg border border-white/10 bg-secondary/40 p-7">
-                  <p className="font-mono text-[10px] uppercase tracking-[0.26em] text-muted-foreground">
-                    récurrent
+              <Reveal key={r.name} delay={i * 0.08} className="h-full">
+                <SpotlightCard className="h-full p-7">
+                  <p className="font-mono text-[10px] uppercase tracking-[0.26em] text-emerald-400">
+                    mensuel
                   </p>
                   <h3 className="mt-4 font-display text-lg font-bold tracking-tight">
                     {r.name}
                   </h3>
-                  <p className="mt-1.5 font-display text-xl font-extrabold tracking-tight">
+                  <p className="mt-1.5 font-display text-2xl font-extrabold tracking-tight">
                     {r.price}
                   </p>
                   <p className="mt-3.5 text-sm leading-relaxed text-muted-foreground">
                     {r.body}
                   </p>
-                </article>
+                </SpotlightCard>
               </Reveal>
             ))}
           </div>
@@ -191,9 +216,9 @@ export default async function TarifsPage() {
       <section className="py-24 sm:py-32">
         <div className="mx-auto max-w-3xl px-5 sm:px-8">
           <Reveal>
-            <h2 className="text-balance font-display text-2xl font-extrabold leading-tight tracking-tight sm:text-4xl">
-              Côté facturation,{" "}
-              <span className="text-muted-foreground">tout est dit.</span>
+            <h2 className="text-balance font-display text-2xl font-extrabold leading-tight tracking-[-0.03em] sm:text-4xl">
+              Questions sur{" "}
+              <span className="text-white/42">nos modalités.</span>
             </h2>
           </Reveal>
           <div className="mt-10">
@@ -203,9 +228,9 @@ export default async function TarifsPage() {
       </section>
 
       <CtaBanner
-        title="Un doute sur la formule"
-        titleMuted="qu'il vous faut ?"
-        body="Décrivez votre projet : nous vous dirons franchement quelle formule colle — ou s'il en faut une sur mesure. Le devis est gratuit, sans engagement."
+        title="Hésitation entre deux formules ?"
+        titleMuted="Demandons à un ingénieur."
+        body="Expliquez-nous votre contexte : nous vous orientons honnêtement vers l'option la plus pertinente."
         cta="Recevoir mon devis"
       />
     </>

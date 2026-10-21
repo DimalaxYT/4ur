@@ -3,30 +3,21 @@
 #
 # Conséquence assumée : la base SQLite est recréée à chaque démarrage
 # ("/tmp" est vidé à chaque redémarrage / redéploiement).
-#   -> Les prix modifiés depuis le panneau dev repartent des valeurs par défaut.
+#   -> Les prix modifiés depuis le dashboard repartent des valeurs par défaut.
 #   -> Les demandes de contact ne survivent pas non plus : la notification
 #      e-mail / webhook est donc OBLIGATOIRE (sinon vous perdez les leads).
 # Le contenu durable se gère dans le code (src/lib/content-defaults.ts) ou via
-# l'export/import JSON du panneau dev.
-#
-# La commande de démarrage définit DATABASE_URL avec une valeur de repli
-# (`${DATABASE_URL:-...}`) : le service démarre même si la variable n'a pas
-# été saisie dans le tableau de bord.
-#
-# Pour une persistance réelle sans disque Render, voir README → « Postgres
-# externe ». Pour un disque : passez `plan` en offre payante, ajoutez une
-# section `disks:` et pointez DATABASE_URL dessus.
+# l'export/import JSON du dashboard.
 # ---------------------------------------------------------------------------
 services:
   - type: web
     name: 4ur
-    runtime: bun # Render utilise bun par défaut ; avec npm, voir README
-    region: frankfurt # le plus proche de la France
+    runtime: bun
+    region: frankfurt
     plan: free
-    healthCheckPath: /
-    # La branche par défaut du dépôt est utilisée ; ajoutez `branch: <nom>` si besoin.
-    buildCommand: bun install && bun run db:generate && bun run build
-    startCommand: mkdir -p /tmp/4ur-db && export DATABASE_URL="${DATABASE_URL:-file:/tmp/4ur-db/custom.db}" && bun run db:push && bunx next start -H 0.0.0.0 -p $PORT
+    healthCheckPath: /api/health
+    buildCommand: bun install --no-frozen-lockfile && bun run db:generate && bun run build
+    startCommand: mkdir -p /tmp/4ur-db && export DATABASE_URL="${DATABASE_URL:-file:/tmp/4ur-db/custom.db}" && bun run db:push && HOSTNAME=0.0.0.0 PORT=$PORT bun .next/standalone/server.js
     envVars:
       # --- Techniques (valeurs connues) ---
       - key: NODE_ENV
@@ -37,12 +28,20 @@ services:
         value: "1"
       - key: NEXT_PUBLIC_SITE_URL
         value: https://4ur.onrender.com # ⚠️ lire au build : à ajuster puis redéployer
+      - key: PING_INTERVAL_MINUTES
+        value: "5"
+      - key: PING_NOTIFY_MODE
+        value: "every_ping"
 
       # --- Secrets : à saisir dans le dashboard Render (jamais dans Git) ---
-      - key: DEV_PANEL_PIN
+      - key: DASHBOARD_PASSWORD
         sync: false
+      - key: DEV_PANEL_PIN
+        sync: false # alias compatible de DASHBOARD_PASSWORD
       - key: DEV_PANEL_SECRET
         sync: false # openssl rand -hex 32
+      - key: DISCORD_WEBHOOK_URL
+        sync: false # URL initiale du webhook Discord (modifiable aussi dans /dashboard)
       - key: CONTACT_NOTIFY_EMAIL
         sync: false
       - key: RESEND_API_KEY

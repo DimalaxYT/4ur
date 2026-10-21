@@ -1,17 +1,11 @@
 import { NextResponse } from "next/server";
 import { BUNDLE_HINT, bundleSchema } from "@/lib/content-schema";
-import { getContentBundle, saveContentBundle } from "@/lib/content";
+import { getContentBundleFresh, saveContentBundle } from "@/lib/content";
 import { isAuthorized } from "@/lib/dev-auth";
 import { checkLimit } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 
-/**
- * GET /api/dev/content — bundle actuel (session requise).
- * PUT /api/dev/content — sauvegarde le bundle (session requise).
- */
-
-/** Vérifie la session ; renvoie une réponse 401 si non autorisé, sinon null. */
 function guard(request: Request): NextResponse | null {
   if (isAuthorized(request)) return null;
   return NextResponse.json({ ok: false, error: "Non autorisé." }, { status: 401 });
@@ -29,8 +23,11 @@ export async function GET(request: Request) {
     );
   }
 
-  const bundle = await getContentBundle();
-  return NextResponse.json({ ok: true, bundle });
+  const bundle = await getContentBundleFresh();
+  return NextResponse.json(
+    { ok: true, bundle },
+    { headers: { "Cache-Control": "no-store" } }
+  );
 }
 
 export async function PUT(request: Request) {

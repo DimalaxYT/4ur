@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Loader2, Send } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -15,6 +14,8 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { Reveal } from "./reveal";
+import { SpotlightCard } from "./spotlight-card";
+import { ActionButton } from "./action-button";
 
 const SUBJECTS = [
   { value: "web", label: "Création de site web" },
@@ -30,15 +31,28 @@ const BUDGETS = [
   { value: "unknown", label: "Je ne sais pas encore" },
 ];
 
+function readInitialQueryParam(name: string, fallback: string): string {
+  if (typeof window === "undefined") return fallback;
+  const val = new URLSearchParams(window.location.search).get(name);
+  return val ? val : fallback;
+}
+
 /**
- * Formulaire de contact connecté à POST /api/contact (validation Zod côté serveur,
- * anti-spam par IP, enregistrement Prisma). Réutilisé sur la page Contact.
+ * Formulaire de contact connecté à POST /api/contact, avec pré-remplissage
+ * automatique depuis `/simulateur` ou `/realisations`.
  */
 export function ContactForm() {
   const { toast } = useToast();
   const [pending, setPending] = useState(false);
-  const [subject, setSubject] = useState<string>("");
-  const [budget, setBudget] = useState<string>("unknown");
+  const [subject, setSubject] = useState<string>(() =>
+    readInitialQueryParam("subject", "")
+  );
+  const [budget, setBudget] = useState<string>(() =>
+    readInitialQueryParam("budget", "unknown")
+  );
+  const [defaultMessage] = useState<string>(() =>
+    readInitialQueryParam("draft", "")
+  );
   const [consent, setConsent] = useState(false);
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -90,155 +104,153 @@ export function ContactForm() {
   }
 
   return (
-    <Reveal delay={0.12}>
-      <form
-        onSubmit={onSubmit}
-        className="rounded-lg border border-white/10 bg-card p-6 sm:p-8"
-        aria-label="Formulaire de contact"
-      >
-        <div className="grid gap-5 sm:grid-cols-2">
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="name">Nom *</Label>
+    <Reveal delay={0.1}>
+      <SpotlightCard className="p-7 sm:p-9">
+        <form onSubmit={onSubmit} aria-label="Formulaire de contact">
+          <div className="grid gap-5 sm:grid-cols-2">
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="name">Nom *</Label>
+              <Input
+                id="name"
+                name="name"
+                required
+                minLength={2}
+                maxLength={100}
+                placeholder="Votre nom"
+                autoComplete="name"
+                className="rounded-xl bg-white/[0.025]"
+              />
+            </div>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="email">Email *</Label>
+              <Input
+                id="email"
+                name="email"
+                type="email"
+                required
+                maxLength={150}
+                placeholder="vous@entreprise.fr"
+                autoComplete="email"
+                className="rounded-xl bg-white/[0.025]"
+              />
+            </div>
+          </div>
+
+          <div className="mt-5 flex flex-col gap-2">
+            <Label htmlFor="company">Entreprise</Label>
             <Input
-              id="name"
-              name="name"
-              required
-              minLength={2}
+              id="company"
+              name="company"
               maxLength={100}
-              placeholder="Votre nom"
-              autoComplete="name"
+              placeholder="Nom de votre structure (optionnel)"
+              autoComplete="organization"
+              className="rounded-xl bg-white/[0.025]"
             />
           </div>
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="email">Email *</Label>
-            <Input
-              id="email"
-              name="email"
-              type="email"
+
+          <div className="mt-5 grid gap-5 sm:grid-cols-2">
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="subject">Votre besoin *</Label>
+              <Select value={subject} onValueChange={setSubject} required>
+                <SelectTrigger id="subject" aria-label="Votre besoin" className="rounded-xl bg-white/[0.025]">
+                  <SelectValue placeholder="Sélectionner…" />
+                </SelectTrigger>
+                <SelectContent>
+                  {SUBJECTS.map((s) => (
+                    <SelectItem key={s.value} value={s.value}>
+                      {s.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="budget">Budget envisagé</Label>
+              <Select value={budget} onValueChange={setBudget}>
+                <SelectTrigger id="budget" aria-label="Budget envisagé" className="rounded-xl bg-white/[0.025]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {BUDGETS.map((b) => (
+                    <SelectItem key={b.value} value={b.value}>
+                      {b.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="mt-5 flex flex-col gap-2">
+            <Label htmlFor="message">Votre projet *</Label>
+            <Textarea
+              id="message"
+              name="message"
               required
-              maxLength={150}
-              placeholder="vous@entreprise.fr"
-              autoComplete="email"
+              minLength={10}
+              maxLength={2000}
+              rows={5}
+              defaultValue={defaultMessage}
+              placeholder="Décrivez votre besoin : activité, objectifs, délais souhaités…"
+              className="resize-none rounded-xl bg-white/[0.025]"
             />
           </div>
-        </div>
 
-        <div className="mt-5 flex flex-col gap-2">
-          <Label htmlFor="company">Entreprise</Label>
-          <Input
-            id="company"
-            name="company"
-            maxLength={100}
-            placeholder="Nom de votre entreprise (optionnel)"
-            autoComplete="organization"
-          />
-        </div>
-
-        <div className="mt-5 grid gap-5 sm:grid-cols-2">
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="subject">Votre besoin *</Label>
-            <Select value={subject} onValueChange={setSubject} required>
-              <SelectTrigger id="subject" aria-label="Votre besoin">
-                <SelectValue placeholder="Sélectionner…" />
-              </SelectTrigger>
-              <SelectContent>
-                {SUBJECTS.map((s) => (
-                  <SelectItem key={s.value} value={s.value}>
-                    {s.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="budget">Budget envisagé</Label>
-            <Select value={budget} onValueChange={setBudget}>
-              <SelectTrigger id="budget" aria-label="Budget envisagé">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {BUDGETS.map((b) => (
-                  <SelectItem key={b.value} value={b.value}>
-                    {b.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-
-        <div className="mt-5 flex flex-col gap-2">
-          <Label htmlFor="message">Votre projet *</Label>
-          <Textarea
-            id="message"
-            name="message"
-            required
-            minLength={10}
-            maxLength={2000}
-            rows={5}
-            placeholder="Décrivez votre besoin : activité, objectifs, délais, ce que vous avez déjà…"
-            className="resize-none"
-          />
-        </div>
-
-        {/* Pot de miel anti-bot : invisible pour l'utilisateur, irrésistible pour un script */}
-        <input
-          type="text"
-          name="website"
-          tabIndex={-1}
-          autoComplete="off"
-          aria-hidden="true"
-          defaultValue=""
-          className="absolute -left-[9999px] h-0 w-0 opacity-0"
-        />
-
-        <div className="mt-6 flex items-start gap-3">
+          {/* Pot de miel anti-bot */}
           <input
-            type="checkbox"
-            id="consent"
-            name="consent"
-            required
-            checked={consent}
-            onChange={(e) => setConsent(e.target.checked)}
-            className="mt-0.5 size-4 shrink-0 accent-primary"
+            type="text"
+            name="website"
+            tabIndex={-1}
+            autoComplete="off"
+            aria-hidden="true"
+            defaultValue=""
+            className="absolute -left-[9999px] h-0 w-0 opacity-0"
           />
-          <label
-            htmlFor="consent"
-            className="text-[13px] leading-relaxed text-muted-foreground"
-          >
-            J&apos;accepte que les informations transmises soient utilisées pour
-            répondre à ma demande.{" "}
-            <Link
-              href="/confidentialite"
-              className="text-foreground underline underline-offset-4 hover:opacity-80"
-            >
-              Politique de confidentialité
-            </Link>
-          </label>
-        </div>
 
-        <button
-          type="submit"
-          disabled={pending}
-          className="group mt-7 inline-flex h-12 w-full items-center justify-center gap-2 rounded-md bg-primary text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-85 disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          {pending ? (
-            <>
-              <Loader2 className="size-4 animate-spin" aria-hidden="true" />
-              Envoi en cours…
-            </>
-          ) : (
-            <>
-              Envoyer ma demande
-              <Send className="size-4 transition-transform group-hover:translate-x-0.5" />
-            </>
-          )}
-        </button>
-        <p className="mt-4 text-center text-xs leading-relaxed text-muted-foreground">
-          Vos données ne servent qu'à vous recontacter. Aucun spam, aucune revente —
-          promis, c'est nous les paranoïaques de la sécurité.
-        </p>
-      </form>
+          <div className="mt-6 flex items-start gap-3">
+            <input
+              type="checkbox"
+              id="consent"
+              name="consent"
+              required
+              checked={consent}
+              onChange={(e) => setConsent(e.target.checked)}
+              className="mt-0.5 size-4 shrink-0 accent-primary"
+            />
+            <label
+              htmlFor="consent"
+              className="text-[13px] leading-relaxed text-muted-foreground"
+            >
+              J&apos;accepte que les informations transmises soient utilisées pour
+              répondre à ma demande.{" "}
+              <Link
+                href="/confidentialite"
+                className="text-foreground underline underline-offset-4 hover:opacity-80"
+              >
+                Politique de confidentialité
+              </Link>
+            </label>
+          </div>
+
+          <div className="mt-7">
+            <ActionButton
+              type="submit"
+              variant="primary"
+              size="lg"
+              icon="send"
+              loading={pending}
+              fullWidth
+            >
+              {pending ? "Envoi en cours…" : "Envoyer ma demande"}
+            </ActionButton>
+          </div>
+
+          <p className="mt-4 text-center text-xs leading-relaxed text-muted-foreground">
+            Zéro prospection automatisée, zéro revente de données. Réponse humaine sous
+            24 h ouvrées.
+          </p>
+        </form>
+      </SpotlightCard>
     </Reveal>
   );
 }

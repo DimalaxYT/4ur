@@ -15,7 +15,7 @@ import "server-only";
  *   doit pas consommer le quota d'un utilisateur légitime qui s'est trompé.
  */
 
-export type Scope = "contact" | "dev-pin" | "dev-content";
+export type Scope = "contact" | "dev-pin" | "dev-content" | "analytics";
 
 interface Policy {
   /** Tentatives autorisées par IP dans la fenêtre. */
@@ -33,9 +33,11 @@ const POLICIES: Record<Scope, Policy> = {
   // Formulaire de contact : souple par IP, mais borné globalement.
   contact: { limit: 5, windowMs: 10 * MINUTE, unknownIpLimit: 40, globalLimit: 150 },
   // PIN du panneau dev : strict — c'est la seule porte d'entrée de l'admin.
-  "dev-pin": { limit: 5, windowMs: 15 * MINUTE, unknownIpLimit: 15, globalLimit: 30 },
+  "dev-pin": { limit: 8, windowMs: 15 * MINUTE, unknownIpLimit: 20, globalLimit: 40 },
   // Écritures de contenu : large, il sert surtout à détecter un abus.
-  "dev-content": { limit: 60, windowMs: 10 * MINUTE, unknownIpLimit: 60, globalLimit: 600 },
+  "dev-content": { limit: 60, windowMs: 10 * MINUTE, unknownIpLimit: 120, globalLimit: 600 },
+  // Suivi analytique anonyme des pages vues.
+  analytics: { limit: 120, windowMs: 10 * MINUTE, unknownIpLimit: 600, globalLimit: 5000 },
 };
 
 interface Bucket {

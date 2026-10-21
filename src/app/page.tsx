@@ -1,75 +1,139 @@
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
+import { Activity, ArrowUpRight, Calculator } from "lucide-react";
 import { Hero3D } from "@/components/site/hero3d";
+import { MarqueeTicker } from "@/components/site/marquee-ticker";
 import { Poles } from "@/components/site/poles";
-import { Constat } from "@/components/site/constat";
+import { FeaturedWorks } from "@/components/site/featured-works";
 import { CtaBanner } from "@/components/site/cta-banner";
 import { Reveal } from "@/components/site/reveal";
-import { STEPS } from "@/components/site/steps-data";
+import { SpotlightCard } from "@/components/site/spotlight-card";
+import { EyebrowPill } from "@/components/site/action-button";
+
+const STANDARDS = [
+  {
+    value: "< 0.5 s",
+    label: "Temps d'affichage cible",
+    detail: "Rendu hybride statique, polices locales et animations compositées sur GPU.",
+  },
+  {
+    value: "100 / 100",
+    label: "Core Web Vitals",
+    detail: "Performance, accessibilité, bonnes pratiques et référencement technique natif.",
+  },
+  {
+    value: "A+ OWASP",
+    label: "Durcissement natif",
+    detail: "Politique CSP stricte, HSTS, protection anti-bot et zéro dépendance superflue.",
+  },
+];
 
 export default function HomePage() {
   return (
     <>
       <Hero3D />
+      <MarqueeTicker />
       <Poles />
-      <Constat />
+      <FeaturedWorks />
 
-      {/* Aperçu de la méthode — version condensée de la page /methode */}
-      <section className="relative border-t border-white/10 bg-[#0d0d0d] py-24 sm:py-32">
+      {/* Section 03 — Standards & Portails vers nos expériences interactives */}
+      <section className="section-beam relative border-t border-white/[0.07] py-28 sm:py-36">
         <div className="mx-auto max-w-6xl px-5 sm:px-8">
           <Reveal>
-            <p className="font-mono text-[11px] uppercase tracking-[0.32em] text-muted-foreground">
-              03 — La méthode
-            </p>
-            <h2 className="mt-4 max-w-3xl text-balance font-display text-3xl font-extrabold leading-tight tracking-tight sm:text-5xl">
-              Sécurité by design.{" "}
-              <span className="text-muted-foreground">Pas by patch.</span>
+            <EyebrowPill dot="emerald">03 · Standards &amp; Outils</EyebrowPill>
+            <h2 className="mt-5 max-w-2xl text-balance font-display text-3xl font-extrabold leading-[1.08] tracking-[-0.03em] sm:text-5xl">
+              La précision se mesure.{" "}
+              <span className="text-white/42">Testez-la vous-même.</span>
             </h2>
-            <p className="mt-6 max-w-2xl text-[15px] leading-relaxed text-muted-foreground">
-              Quatre temps, aucun angle mort. La protection n'est pas une étape finale
-              chez 4ur : c'est le squelette du projet, du premier café à la mise en
-              production.
-            </p>
           </Reveal>
 
-          <ol className="mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-            {STEPS.map((s, i) => (
-              <Reveal key={s.num} delay={i * 0.1} className="h-full">
-                <li className="group relative h-full rounded-lg border border-white/10 bg-card p-6 transition-colors hover:border-white/25">
-                  <span
-                    className="font-display text-4xl font-black tracking-tight text-transparent"
-                    style={{ WebkitTextStroke: "1.2px rgba(250,250,249,0.35)" }}
-                    aria-hidden="true"
-                  >
-                    {s.num}
-                  </span>
-                  <h3 className="mt-5 font-display text-base font-bold tracking-tight">
-                    {s.title}
-                  </h3>
-                  <p className="mt-2.5 text-[13px] leading-relaxed text-muted-foreground">
-                    {s.body}
+          {/* Triptyque architectural épuré */}
+          <div className="mt-14 grid gap-8 border-y border-white/[0.07] py-12 md:grid-cols-3 md:gap-10">
+            {STANDARDS.map((s, i) => (
+              <Reveal key={s.value} delay={i * 0.08}>
+                <div>
+                  <p className="text-platinum font-display text-4xl font-extrabold tracking-[-0.03em] sm:text-5xl">
+                    {s.value}
                   </p>
-                </li>
+                  <p className="mt-3 font-display text-base font-bold tracking-tight text-foreground">
+                    {s.label}
+                  </p>
+                  <p className="mt-2 text-[13.5px] leading-relaxed text-muted-foreground">
+                    {s.detail}
+                  </p>
+                </div>
               </Reveal>
             ))}
-          </ol>
+          </div>
 
-          <Reveal delay={0.15}>
-            <Link
-              href="/methode"
-              className="group mt-10 inline-flex items-center gap-2 text-sm font-semibold text-foreground"
-            >
-              Découvrir la méthode en détail
-              <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" />
-            </Link>
-          </Reveal>
+          {/* Deux portails minimalistes vers les pages interactives dédiées */}
+          <div className="mt-12 grid gap-6 md:grid-cols-2">
+            <Reveal delay={0.05} className="h-full">
+              <SpotlightCard spotlightColor="rgba(52, 211, 153, 0.09)" className="h-full">
+                <Link
+                  href="/lab"
+                  className="flex h-full items-center justify-between gap-6 p-7 sm:p-8"
+                >
+                  <div className="flex items-start gap-4">
+                    <span className="inline-flex size-11 shrink-0 items-center justify-center rounded-2xl border border-emerald-400/20 bg-emerald-400/[0.07] text-emerald-400">
+                      <Activity className="size-5" strokeWidth={1.7} />
+                    </span>
+                    <div>
+                      <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-emerald-400">
+                        Laboratoire interactif
+                      </p>
+                      <h3 className="mt-1 font-display text-lg font-bold tracking-tight">
+                        Tester notre bouclier WAF en direct
+                      </h3>
+                      <p className="mt-1.5 text-[13.5px] leading-relaxed text-muted-foreground">
+                        Simulez des injections SQL, XSS ou DDoS et inspectez nos en-têtes
+                        HTTP en temps réel.
+                      </p>
+                    </div>
+                  </div>
+                  <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-full border border-white/[0.12] bg-white/[0.04] transition-all group-hover:border-white/30 group-hover:bg-white/[0.10]">
+                    <ArrowUpRight className="size-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+                  </span>
+                </Link>
+              </SpotlightCard>
+            </Reveal>
+
+            <Reveal delay={0.12} className="h-full">
+              <SpotlightCard className="h-full">
+                <Link
+                  href="/simulateur"
+                  className="flex h-full items-center justify-between gap-6 p-7 sm:p-8"
+                >
+                  <div className="flex items-start gap-4">
+                    <span className="inline-flex size-11 shrink-0 items-center justify-center rounded-2xl border border-white/[0.12] bg-white/[0.04] text-foreground">
+                      <Calculator className="size-5" strokeWidth={1.7} />
+                    </span>
+                    <div>
+                      <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
+                        Estimation instantanée
+                      </p>
+                      <h3 className="mt-1 font-display text-lg font-bold tracking-tight">
+                        Configurer et chiffrer mon projet
+                      </h3>
+                      <p className="mt-1.5 text-[13.5px] leading-relaxed text-muted-foreground">
+                        Estimez votre budget, vos délais et vos modules en 30 secondes
+                        avant de nous écrire.
+                      </p>
+                    </div>
+                  </div>
+                  <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-full border border-white/[0.12] bg-white/[0.04] transition-all group-hover:border-white/30 group-hover:bg-white/[0.10]">
+                    <ArrowUpRight className="size-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+                  </span>
+                </Link>
+              </SpotlightCard>
+            </Reveal>
+          </div>
         </div>
       </section>
 
       <CtaBanner
-        title="Prêt à exister en ligne —"
-        titleMuted="et à dormir tranquille ?"
-        body="Racontez-nous votre projet en quelques lignes. Nous revenons vers vous sous 24 h ouvrées avec un premier avis honnête, gratuit et sans engagement."
+        title="Prêt à construire sans compromis ?"
+        titleMuted="Parlons de votre projet."
+        body="Réponse personnelle sous 24 h ouvrées avec un premier cadrage clair, honnête et sans engagement."
         cta="Démarrer un projet"
       />
     </>
