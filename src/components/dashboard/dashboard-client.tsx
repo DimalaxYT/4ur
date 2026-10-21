@@ -319,7 +319,19 @@ export function DashboardClient() {
   const [statsLoading, setStatsLoading] = useState(false);
   const [confirmResetStats, setConfirmResetStats] = useState(false);
 
-  const [monitorConfig, setMonitorConfig] = useState<MonitorConfig | null>(null);
+  const [monitorConfig, setMonitorConfig] = useState<MonitorConfig>(() => ({
+    enabled: true,
+    targetUrl:
+      typeof window !== "undefined"
+        ? `${window.location.origin}/api/health`
+        : "http://127.0.0.1:3000/api/health",
+    discordWebhookUrl: "",
+    intervalMinutes: 5,
+    notifyMode: "every_ping",
+    includeStatsInEmbed: true,
+    username: "4UR Monitor",
+  }));
+  const [monitorError, setMonitorError] = useState<string | null>(null);
   const [monitorRuntime, setMonitorRuntime] = useState<MonitorRuntime | null>(null);
   const [pingLogs, setPingLogs] = useState<PingLogItem[]>([]);
   const [monitorBusy, setMonitorBusy] = useState(false);
@@ -330,7 +342,7 @@ export function DashboardClient() {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [leadsLoading, setLeadsLoading] = useState(false);
 
-  const [bundle, setBundle] = useState<ContentBundle | null>(null);
+  const [bundle, setBundle] = useState<ContentBundle>(() => DEFAULT_BUNDLE);
   const [savingContent, setSavingContent] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -398,12 +410,15 @@ export function DashboardClient() {
           logs?: PingLogItem[];
         };
         if (data.ok) {
+          setMonitorError(null);
           if (overwriteForm && data.config) setMonitorConfig(data.config);
           if (data.runtime) setMonitorRuntime(data.runtime);
           if (data.logs) setPingLogs(data.logs);
+        } else {
+          setMonitorError("Synchronisation temporairement indisponible — mode local actif.");
         }
       } catch {
-        /* silencieux */
+        setMonitorError("Connexion serveur en cours de rétablissement…");
       }
     },
     [authHeaders, handleUnauthorized]
@@ -1387,8 +1402,58 @@ export function DashboardClient() {
       {/* ==================================================================== */}
       {/*                      ONGLET 2 : WEBHOOK & PING                       */}
       {/* ==================================================================== */}
-      {activeTab === "monitor" && monitorConfig && (
+      {activeTab === "monitor" && (
         <div className="mt-8 flex flex-col gap-6">
+          {monitorError && (
+            <div className="flex items-center justify-between gap-4 rounded-xl border border-amber-400/25 bg-amber-400/[0.06] px-4 py-3 text-xs text-amber-200">
+              <span>{monitorError}</span>
+              <button
+                type="button"
+                onClick={() => void fetchMonitor(true)}
+                className="rounded-md border border-amber-300/30 px-2.5 py-1 font-mono text-[11px] hover:bg-amber-300/10"
+              >
+                Réessayer
+              </button>
+            </div>
+          )}
+
+          {/* Encadré spécial Hébergement Sans Disque Persistant (Render Free) */}
+          <div className="flex flex-col justify-between gap-4 rounded-xl border border-emerald-400/20 bg-emerald-400/[0.04] p-5 sm:flex-row sm:items-center">
+            <div className="max-w-2xl">
+              <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-emerald-400">
+                ✓ 100 % compatible sans disque persistant (Render Free)
+              </p>
+              <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
+                Aucun disque payant n&apos;est requis : la base tourne automatiquement en RAM
+                (<code className="text-foreground">/tmp</code>) et le ping toutes les{" "}
+                <strong className="text-foreground">
+                  {monitorConfig.intervalMinutes} min
+                </strong>{" "}
+                empêche Render de s&apos;endormir. Astuce : copiez ces 3 lignes dans{" "}
+                <strong className="text-foreground">Render → Environment</strong> pour que
+                votre Webhook survive aussi aux futurs redéploiements Git.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                const envSnippet = [
+                  `DISCORD_WEBHOOK_URL=${monitorConfig.discordWebhookUrl.trim()}`,
+                  `PING_INTERVAL_MINUTES=${monitorConfig.intervalMinutes}`,
+                  `PING_NOTIFY_MODE=${monitorConfig.notifyMode}`,
+                ].join("\n");
+                void navigator.clipboard?.writeText(envSnippet);
+                toast({
+                  title: "Variables copiées ✓",
+                  description:
+                    "Collez-les dans Render → Environment → Add from .env pour les rendre permanentes.",
+                });
+              }}
+              className="inline-flex h-9 shrink-0 items-center gap-2 rounded-full border border-emerald-400/30 bg-emerald-400/10 px-4 font-mono text-[11px] font-medium text-emerald-300 transition-colors hover:bg-emerald-400/20"
+            >
+              Copier pour Render (.env)
+            </button>
+          </div>
           {/* Bandeau d'état en direct + actions immédiates */}
           <div className="flex flex-col justify-between gap-4 rounded-xl border border-white/12 bg-card p-6 lg:flex-row lg:items-center">
             <div className="flex items-start gap-4">
